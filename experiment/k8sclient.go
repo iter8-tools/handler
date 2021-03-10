@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	iter8 "github.com/iter8-tools/etc3/api/v2alpha1"
+	iter8 "github.com/iter8-tools/etc3/api/v2alpha2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"

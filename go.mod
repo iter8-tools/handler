@@ -4,7 +4,7 @@ go 1.15
 
 // require (
 // 	github.com/ghodss/yaml v1.0.0
-// 	github.com/iter8-tools/etc3 v0.1.8-pre
+// 	github.com/iter8-tools/etc3 v0.1.16-pre
 // 	github.com/mitchellh/go-homedir v1.1.0
 // 	github.com/onsi/ginkgo v1.15.0
 // 	github.com/onsi/gomega v1.10.5
@@ -21,7 +21,7 @@ go 1.15
 
 require (
 	github.com/ghodss/yaml v1.0.0
-	github.com/iter8-tools/etc3 v0.1.11-pre
+	github.com/iter8-tools/etc3 v0.1.16-pre
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5

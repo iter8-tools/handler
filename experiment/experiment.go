@@ -5,8 +5,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
-	iter8 "github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
+	iter8 "github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
 	"github.com/iter8-tools/handler/utils"
 	"github.com/sirupsen/logrus"
@@ -18,9 +18,9 @@ func init() {
 	log = utils.GetLogger()
 }
 
-// Experiment is an enhancement of v2alpha1.Experiment struct with useful methods.
+// Experiment is an enhancement of v2alpha2.Experiment struct with useful methods.
 type Experiment struct {
-	v2alpha1.Experiment
+	v2alpha2.Experiment
 }
 
 // Builder helps in construction of an experiment.
@@ -51,12 +51,12 @@ func GetExperimentFromContext(ctx context.Context) (*Experiment, error) {
 	return nil, errors.New("context has no experiment key")
 }
 
-// Interpolate interpolates input arguments based on tags of the recommended baseline in the experiment.
+// Interpolate interpolates input arguments based on tags of the version recommended for promotion in the experiment.
 func (exp *Experiment) Interpolate(inputArgs []string) ([]string, error) {
 	var recommendedBaseline string
 	var args []string
 	var err error
-	if recommendedBaseline, err = exp.GetRecommendedBaseline(); err == nil {
+	if recommendedBaseline, err = exp.GetVersionRecommendedForPromotion(); err == nil {
 		var versionDetail *iter8.VersionDetail
 		if versionDetail, err = exp.GetVersionDetail(recommendedBaseline); err == nil {
 			// get the tags

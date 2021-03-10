@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/experiment"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -83,9 +83,9 @@ func checkKsvcReadiness(ksvc *servingv1.Service) error {
 // updateLocalExp updates the given Knative experiment struct.
 func updateLocalExp(e *experiment.Experiment, ksvc *servingv1.Service) error {
 	switch e.Spec.Strategy.TestingPattern {
-	case v2alpha1.TestingPatternConformance:
+	case v2alpha2.TestingPatternConformance:
 		return updateLocalConformanceExp(e, ksvc)
-	case v2alpha1.TestingPatternCanary:
+	case v2alpha2.TestingPatternCanary:
 		return updateLocalCanaryExp(e, ksvc)
 	default:
 		return errors.New("unsupported testing pattern found in experiment")
@@ -108,7 +108,7 @@ func updateLocalConformanceExp(e *experiment.Experiment, ksvc *servingv1.Service
 }
 
 // findRevisionFromVersionDetail finds the name of the revision in the given VersionDetail struct.
-func findRevisionInVersionDetail(v *v2alpha1.VersionDetail) (string, error) {
+func findRevisionInVersionDetail(v *v2alpha2.VersionDetail) (string, error) {
 	return experiment.FindVariableInVersionDetail(v, "revision")
 }
 

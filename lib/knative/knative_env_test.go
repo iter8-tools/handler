@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/ghodss/yaml"
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
 	"github.com/iter8-tools/handler/experiment"
 	"github.com/iter8-tools/handler/utils"
@@ -26,7 +26,7 @@ var _ = Describe("Knative library", func() {
 		u1 := &unstructured.Unstructured{}
 		u1.SetGroupVersionKind((&servingv1.Service{}).GetGroupVersionKind())
 		u2 := &unstructured.Unstructured{}
-		u2.SetGroupVersionKind(v2alpha1.GroupVersion.WithKind("experiment"))
+		u2.SetGroupVersionKind(v2alpha2.GroupVersion.WithKind("experiment"))
 		BeforeEach(func() {
 			k8sClient.DeleteAllOf(context.Background(), u1, client.InNamespace("default"))
 			k8sClient.DeleteAllOf(context.Background(), u2, client.InNamespace("default"))

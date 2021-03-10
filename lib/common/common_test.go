@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
 	"github.com/iter8-tools/handler/experiment"
 	"github.com/iter8-tools/handler/utils"
@@ -16,9 +16,8 @@ import (
 func TestMakeTask(t *testing.T) {
 	b, _ := json.Marshal("echo")
 	a, _ := json.Marshal([]string{"hello", "people", "of", "earth"})
-	task, err := MakeTask(&v2alpha1.TaskSpec{
-		Library: "common",
-		Task:    "exec",
+	task, err := MakeTask(&v2alpha2.TaskSpec{
+		Task: "common/exec",
 		With: map[string]apiextensionsv1.JSON{
 			"cmd":  {Raw: b},
 			"args": {Raw: a},
@@ -32,9 +31,8 @@ func TestMakeTask(t *testing.T) {
 	exp, err := (&experiment.Builder{}).FromFile(utils.CompletePath("../../", "testdata/experiment10.yaml")).Build()
 	task.Run(context.WithValue(context.Background(), base.ContextKey("experiment"), exp))
 
-	task, err = MakeTask(&v2alpha1.TaskSpec{
-		Library: "common",
-		Task:    "run",
+	task, err = MakeTask(&v2alpha2.TaskSpec{
+		Task: "common/run",
 		With: map[string]apiextensionsv1.JSON{
 			"cmd": {Raw: b},
 		},
@@ -47,9 +45,8 @@ func TestExecTaskNoInterpolation(t *testing.T) {
 	b, _ := json.Marshal("echo")
 	a, _ := json.Marshal([]string{"hello", "{{ omg }}", "world"})
 	c, _ := json.Marshal(true)
-	task, err := MakeTask(&v2alpha1.TaskSpec{
-		Library: "common",
-		Task:    "exec",
+	task, err := MakeTask(&v2alpha2.TaskSpec{
+		Task: "common/exec",
 		With: map[string]apiextensionsv1.JSON{
 			"cmd":                  {Raw: b},
 			"args":                 {Raw: a},

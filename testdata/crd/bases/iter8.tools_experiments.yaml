@@ -32,7 +32,7 @@ spec:
     - jsonPath: .status.message
       name: message
       type: string
-    name: v2alpha1
+    name: v2alpha2
     schema:
       openAPIV3Schema:
         description: Experiment is the Schema for the experiments API
@@ -114,24 +114,32 @@ spec:
                       user
                     type: string
                   reward:
-                    description: Reward is the metric that should be used to evaluate
-                      the reward for a version in the experiment.
-                    properties:
-                      metric:
-                        description: Metric ..
-                        type: string
-                      preferredDirection:
-                        description: PreferredDirection identifies whether higher
-                          or lower values of the reward metric are preferred valid
-                          values are "higher" and "lower"
-                        enum:
-                        - High
-                        - Low
-                        type: string
-                    required:
-                    - metric
-                    - preferredDirection
-                    type: object
+                    description: Reward is a list of metrics that should be used to
+                      evaluate the reward for a version in the experiment.
+                    items:
+                      description: Reward ..
+                      properties:
+                        metric:
+                          description: Metric ..
+                          type: string
+                        preferredDirection:
+                          description: PreferredDirection identifies whether higher
+                            or lower values of the reward metric are preferred valid
+                            values are "higher" and "lower"
+                          enum:
+                          - High
+                          - Low
+                          type: string
+                      required:
+                      - metric
+                      - preferredDirection
+                      type: object
+                    type: array
+                  support:
+                    description: Support identifies the required degree of support
+                      the analytics must provide before the analytics engine will
+                      assert success for an objective.
+                    x-kubernetes-preserve-unknown-fields: true
                 type: object
               duration:
                 description: Duration describes how long the experiment will last.
@@ -185,11 +193,34 @@ spec:
                             description:
                               description: Text description of the metric
                               type: string
+                            headers:
+                              description: HeaderTemplates are templates for headers
+                                that should be passed to the metrics backend. Typically
+                                these are authentication headers. Any fields of the
+                                form '$name' are treated as variables whose value
+                                is looked up in the secret referred to by spec.secretRef.
+                                If the secret does not contain the variable as a key,
+                                the full string "$name" is used.
+                              items:
+                                description: NamedValue name/value to be used in constructing
+                                  a REST query to backend metrics server
+                                properties:
+                                  name:
+                                    description: Name of parameter
+                                    type: string
+                                  value:
+                                    description: Value of parameter
+                                    type: string
+                                required:
+                                - name
+                                - value
+                                type: object
+                              type: array
                             params:
                               description: Params are key/value pairs used to construct
                                 a REST query to the metrics backend
                               items:
-                                description: Param name/value to be used in constructing
+                                description: NamedValue name/value to be used in constructing
                                   a REST query to backend metrics server
                                 properties:
                                   name:
@@ -212,19 +243,14 @@ spec:
                               description: SampleSize is a reference to a counter
                                 metric resource. It needs to indicte the number of
                                 data points over which this metric is computed.
-                              properties:
-                                name:
-                                  description: Name is the name of the metric
-                                  minLength: 1
-                                  type: string
-                                namespace:
-                                  description: Namespace is the namespace where the
-                                    metric is defined If not provided, it is assumed
-                                    to be in the same namespace as the referrer.
-                                  type: string
-                              required:
-                              - name
-                              type: object
+                              minLength: 1
+                              type: string
+                            secret:
+                              description: SecretRef the name of a kubernetes Secret
+                                containing authentication details for the metrics
+                                backend
+                              minLength: 1
+                              type: string
                             type:
                               default: gauge
                               description: Type of the metric
@@ -235,8 +261,17 @@ spec:
                             units:
                               description: Units used for display only
                               type: string
+                            urlTemplate:
+                              description: URLTemplate is a template of the url of
+                                metrics backend. Any fields pf the form '$name' are
+                                treated as variables whose value is looked up in the
+                                secret referred to by spec.secretRef. If the secret
+                                does not contain the variable as a key, the full string
+                                "$name" is used.
+                              type: string
                           required:
                           - provider
+                          - urlTemplate
                           type: object
                       type: object
                       x-kubernetes-embedded-resource: true
@@ -252,6 +287,33 @@ spec:
               strategy:
                 description: Strategy identifies the type of experiment and its properties
                 properties:
+                  actions:
+                    additionalProperties:
+                      description: Action is a slice of task specifications.
+                      items:
+                        description: TaskSpec contains the specification of a task.
+                        properties:
+                          task:
+                            description: Task unique identifies the task to be executed
+                              with the library. Examples include 'init-experiment',
+                              'exec', etc.
+                            type: string
+                          with:
+                            additionalProperties:
+                              x-kubernetes-preserve-unknown-fields: true
+                            description: With holds inputs to this task. Different
+                              task require different types of inputs. Hence, this
+                              data is held as json.RawMessage to be decoded by individual
+                              task libraries.
+                            type: object
+                        required:
+                        - task
+                        type: object
+                      type: array
+                    description: Actions define the collections of tasks that are
+                      executed by handlers. Specifically, start and finish actions
+                      are invoked by start and finish handlers respectively.
+                    type: object
                   deploymentPattern:
                     description: DeploymentPattern is the deployment pattern of an
                       experiment. It takes effect when the testing pattern is one
@@ -279,6 +341,11 @@ spec:
                           for a winning version. In the future, this function might
                           be migrated into the controller itself.
                         type: string
+                      loop:
+                        description: Loop handler should implement any domain specific
+                          actions that should take place when an experiment reaches  a
+                          loop boundary.
+                        type: string
                       rollback:
                         description: Rollback handler should implement any domain
                           specific actions that should take place when an objective
@@ -293,7 +360,6 @@ spec:
                           resource.
                         type: string
                     type: object
-                    x-kubernetes-preserve-unknown-fields: true
                   testingPattern:
                     description: TestingPattern is the testing pattern of an experiment
                     enum:
@@ -325,7 +391,6 @@ spec:
                 required:
                 - testingPattern
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
               target:
                 description: Target is used to enable concurrent experimentation Two
                   experiments cannot be running concurrently for the same target.
@@ -400,7 +465,6 @@ spec:
                     required:
                     - name
                     type: object
-                    x-kubernetes-preserve-unknown-fields: true
                   candidates:
                     description: Candidates is list candidate versions
                     items:
@@ -469,7 +533,6 @@ spec:
                       required:
                       - name
                       type: object
-                      x-kubernetes-preserve-unknown-fields: true
                     type: array
                 required:
                 - baseline
@@ -721,11 +784,6 @@ spec:
                   - value
                   type: object
                 type: array
-              endTime:
-                description: EndTime is the time when experiment completes (after
-                  the finish handler completed)
-                format: date-time
-                type: string
               initTime:
                 description: InitTime is the times when the experiment is initialized
                   (experiment CR is new) matches example
@@ -737,12 +795,6 @@ spec:
                 type: string
               message:
                 description: Message specifies message to show in the kubectl printer
-                type: string
-              recommendedBaseline:
-                description: RecommendedBaseline is the version recommended as the
-                  baseline after the experiment completes. Will be set to the winner
-                  (status.analysis[].data.winner) or to the current baseline in the
-                  case of a rollback.
                 type: string
               stage:
                 description: Stage indicates where the experiment is in its process
@@ -758,6 +810,12 @@ spec:
                 description: StartTime is the time when the experiment starts (after
                   the start handler finished) matches
                 format: date-time
+                type: string
+              versionRecommendedForPromotion:
+                description: VersionRecommendedForPromotion is the version recommended
+                  as the baseline after the experiment completes. Will be set to the
+                  winner (status.analysis[].data.winner) or to the current baseline
+                  in the case of a rollback.
                 type: string
             type: object
         type: object

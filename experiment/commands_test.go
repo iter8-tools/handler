@@ -3,7 +3,7 @@ package experiment
 import (
 	"testing"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/utils"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +32,7 @@ func TestUpdateVariable(t *testing.T) {
 	exp, err := (&Builder{}).FromFile(utils.CompletePath("../", "testdata/experiment6.yaml")).Build()
 	assert.NoError(t, err)
 
-	var v *v2alpha1.VersionDetail = nil
+	var v *v2alpha2.VersionDetail = nil
 	err = UpdateVariable(v, "revision", "revision2")
 	assert.Error(t, err)
 
@@ -71,7 +71,7 @@ func TestFindVariableVersionDetail(t *testing.T) {
 	exp, err := (&Builder{}).FromFile(utils.CompletePath("../", "testdata/experiment6.yaml")).Build()
 	assert.NoError(t, err)
 
-	var v *v2alpha1.VersionDetail = nil
+	var v *v2alpha2.VersionDetail = nil
 	val, err := FindVariableInVersionDetail(v, "revision")
 	assert.Empty(t, val)
 	assert.Error(t, err)

@@ -8,7 +8,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
 	"github.com/iter8-tools/handler/experiment"
 )
@@ -59,8 +59,8 @@ func (t *ExecTask) Run(ctx context.Context) error {
 }
 
 // MakeExec converts an exec task spec into an exec task.
-func MakeExec(t *v2alpha1.TaskSpec) (base.Task, error) {
-	if t.Library != "common" || t.Task != "exec" {
+func MakeExec(t *v2alpha2.TaskSpec) (base.Task, error) {
+	if t.Task != "common/exec" {
 		return nil, errors.New("library and task need to be 'common' and 'exec'")
 	}
 	var err error

@@ -3,19 +3,19 @@ package experiment
 import (
 	"errors"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
-	iter8 "github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
+	iter8 "github.com/iter8-tools/etc3/api/v2alpha2"
 )
 
-// GetRecommendedBaseline from the experiment.
-func (e *Experiment) GetRecommendedBaseline() (string, error) {
+// GetVersionRecommendedForPromotion from the experiment.
+func (e *Experiment) GetVersionRecommendedForPromotion() (string, error) {
 	if e == nil {
-		return "", errors.New("GetRecommendedBaseline() called on nil experiment")
+		return "", errors.New("GetVersionRecommendedForPromotion() called on nil experiment")
 	}
-	if e.Status.RecommendedBaseline == nil {
-		return "", errors.New("Recommended baseline not found in experiment status")
+	if e.Status.VersionRecommendedForPromotion == nil {
+		return "", errors.New("Version recommended for promotion not found in experiment status")
 	}
-	return *e.Status.RecommendedBaseline, nil
+	return *e.Status.VersionRecommendedForPromotion, nil
 }
 
 // GetVersionDetail from the experiment for a named version.
@@ -37,7 +37,7 @@ func (e *Experiment) GetVersionDetail(versionName string) (*iter8.VersionDetail,
 }
 
 // GetActionSpec gets a named action spec from an experiment.
-func (e *Experiment) GetActionSpec(name string) (v2alpha1.Action, error) {
+func (e *Experiment) GetActionSpec(name string) (v2alpha2.Action, error) {
 	if e == nil {
 		return nil, errors.New("GetActionSpec(...) called on nil experiment")
 	}
@@ -51,7 +51,7 @@ func (e *Experiment) GetActionSpec(name string) (v2alpha1.Action, error) {
 }
 
 // UpdateVariable updates a variable within the given VersionDetail. If the variable is already present in the VersionDetail object, the pre-existing value takes precedence and is retained; if not, the new value is inserted.
-func UpdateVariable(v *v2alpha1.VersionDetail, name string, value string) error {
+func UpdateVariable(v *v2alpha2.VersionDetail, name string, value string) error {
 	if v == nil {
 		return errors.New("nil valued version detail")
 	}
@@ -61,7 +61,7 @@ func UpdateVariable(v *v2alpha1.VersionDetail, name string, value string) error 
 			return nil
 		}
 	}
-	v.Variables = append(v.Variables, v2alpha1.Variable{
+	v.Variables = append(v.Variables, v2alpha2.Variable{
 		Name:  name,
 		Value: value,
 	})
@@ -69,7 +69,7 @@ func UpdateVariable(v *v2alpha1.VersionDetail, name string, value string) error 
 }
 
 // FindVariableInVersionDetail scans the variables slice in the given version detail and returns the value of the given variable.
-func FindVariableInVersionDetail(v *v2alpha1.VersionDetail, name string) (string, error) {
+func FindVariableInVersionDetail(v *v2alpha2.VersionDetail, name string) (string, error) {
 	if v == nil {
 		return "", errors.New("nil valued VersionDetail")
 	}

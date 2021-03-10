@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
 	"github.com/iter8-tools/handler/utils"
 	"github.com/stretchr/testify/assert"
@@ -37,17 +37,17 @@ func TestGetRecommendedBaseline(t *testing.T) {
 	var b string
 	exp, err = (&Builder{}).FromFile(utils.CompletePath("../", "testdata/experiment6.yaml")).Build()
 	assert.NoError(t, err)
-	b, err = exp.GetRecommendedBaseline()
+	b, err = exp.GetVersionRecommendedForPromotion()
 	assert.NoError(t, err)
 	assert.Equal(t, "default", b)
 
 	exp, err = (&Builder{}).FromFile(utils.CompletePath("../", "testdata/experiment2.yaml")).Build()
 	assert.NoError(t, err)
-	b, err = exp.GetRecommendedBaseline()
+	b, err = exp.GetVersionRecommendedForPromotion()
 	assert.Error(t, err)
 
 	exp = nil
-	b, err = exp.GetRecommendedBaseline()
+	b, err = exp.GetVersionRecommendedForPromotion()
 	assert.Error(t, err)
 }
 
@@ -60,11 +60,11 @@ func TestGetExperimentFromContext(t *testing.T) {
 	assert.Error(t, err)
 
 	ctx = context.WithValue(context.Background(), base.ContextKey("experiment"), &Experiment{
-		Experiment: v2alpha1.Experiment{
+		Experiment: v2alpha2.Experiment{
 			TypeMeta:   v1.TypeMeta{},
 			ObjectMeta: v1.ObjectMeta{},
-			Spec:       v2alpha1.ExperimentSpec{},
-			Status:     v2alpha1.ExperimentStatus{},
+			Spec:       v2alpha2.ExperimentSpec{},
+			Status:     v2alpha2.ExperimentStatus{},
 		},
 	})
 
@@ -79,7 +79,7 @@ func TestInterpolate(t *testing.T) {
 	var b string
 	exp, err = (&Builder{}).FromFile(utils.CompletePath("../", "testdata/experiment6.yaml")).Build()
 	assert.NoError(t, err)
-	b, err = exp.GetRecommendedBaseline()
+	b, err = exp.GetVersionRecommendedForPromotion()
 	assert.NoError(t, err)
 	assert.Equal(t, "default", b)
 

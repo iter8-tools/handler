@@ -4,8 +4,9 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 
-	"github.com/iter8-tools/etc3/api/v2alpha1"
+	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
 	"github.com/iter8-tools/handler/experiment"
 	"github.com/iter8-tools/handler/lib/common"
@@ -30,22 +31,26 @@ func getExperimentNN() (*types.NamespacedName, error) {
 }
 
 // GetAction converts an action spec into an action.
-func GetAction(exp *experiment.Experiment, actionSpec v2alpha1.Action) (base.Action, error) {
+func GetAction(exp *experiment.Experiment, actionSpec v2alpha2.Action) (base.Action, error) {
 	action := make(base.Action, len(actionSpec))
 	var err error
 Loop:
 	for i := 0; i < len(actionSpec); i++ {
-		switch actionSpec[i].Library {
-		case "common":
-			if action[i], err = common.MakeTask(&actionSpec[i]); err != nil {
-				break Loop
+		if actionSpecSubstr := strings.Split(actionSpec[i].Task, "/"); len(actionSpecSubstr) == 2 {
+			switch actionSpecSubstr[0] {
+			case "common":
+				if action[i], err = common.MakeTask(&actionSpec[i]); err != nil {
+					break Loop
+				}
+			case "knative":
+				if action[i], err = knative.MakeTask(&actionSpec[i]); err != nil {
+					break Loop
+				}
+			default:
+				err = errors.New("unknown library: " + actionSpecSubstr[0])
 			}
-		case "knative":
-			if action[i], err = knative.MakeTask(&actionSpec[i]); err != nil {
-				break Loop
-			}
-		default:
-			err = errors.New("unknown library: " + actionSpec[i].Library)
+		} else {
+			err = errors.New("no library specified")
 		}
 	}
 	return action, err
@@ -57,7 +62,7 @@ func run(cmd *cobra.Command, args []string) error {
 	if err == nil {
 		var exp *experiment.Experiment
 		if exp, err = (&experiment.Builder{}).FromCluster(nn).Build(); err == nil {
-			var actionSpec v2alpha1.Action
+			var actionSpec v2alpha2.Action
 			if actionSpec, err = exp.GetActionSpec(action); err == nil {
 				var action base.Action
 				if action, err = GetAction(exp, actionSpec); err == nil {
