@@ -146,7 +146,7 @@ var _ = Describe("Knative library", func() {
 				Namespace:  ksvc.Namespace,
 				Name:       ksvc.Name,
 				APIVersion: ksvc.APIVersion,
-				FieldPath:  "/spec/traffic/0/percent",
+				FieldPath:  ".spec.traffic[0].percent",
 			}))
 			Expect(exp3.Spec.VersionInfo.Candidates).ToNot(BeEmpty())
 			Expect(exp3.Spec.VersionInfo.Candidates[0].WeightObjRef).ToNot(BeNil())
@@ -155,7 +155,7 @@ var _ = Describe("Knative library", func() {
 				Namespace:  ksvc.Namespace,
 				Name:       ksvc.Name,
 				APIVersion: ksvc.APIVersion,
-				FieldPath:  "/spec/traffic/1/percent",
+				FieldPath:  ".spec.traffic[1].percent",
 			}))
 		})
 	})
