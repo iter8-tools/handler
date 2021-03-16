@@ -192,7 +192,7 @@ spec:
                             description:
                               description: Text description of the metric
                               type: string
-                            headers:
+                            headerTemplates:
                               description: HeaderTemplates are templates for headers
                                 that should be passed to the metrics backend. Typically
                                 these are authentication headers. Any fields of the
@@ -215,6 +215,12 @@ spec:
                                 - value
                                 type: object
                               type: array
+                            jqExpression:
+                              description: JQExpression defines how the value of the
+                                metric should be extracted from the metric value returned
+                                by a query to the backend metrics server
+                              minLength: 1
+                              type: string
                             params:
                               description: Params are key/value pairs used to construct
                                 a REST query to the metrics backend
@@ -269,7 +275,6 @@ spec:
                                 "$name" is used.
                               type: string
                           required:
-                          - provider
                           - urlTemplate
                           type: object
                       type: object
