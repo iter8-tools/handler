@@ -198,7 +198,7 @@ func objRefFromFieldPath(fieldPathIndex int, ksvc *servingv1.Service) *corev1.Ob
 		Namespace:  ksvc.Namespace,
 		Name:       ksvc.Name,
 		APIVersion: apiVersion,
-		FieldPath:  "/spec/traffic/" + fmt.Sprint(fieldPathIndex) + "/percent",
+		FieldPath:  ".spec.traffic[" + fmt.Sprint(fieldPathIndex) + "].percent",
 	}
 }
 
