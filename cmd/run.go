@@ -11,6 +11,7 @@ import (
 	"github.com/iter8-tools/handler/experiment"
 	"github.com/iter8-tools/handler/lib/common"
 	"github.com/iter8-tools/handler/lib/knative"
+	"github.com/iter8-tools/handler/lib/metrics"
 	"github.com/iter8-tools/handler/lib/notification"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -49,6 +50,11 @@ Loop:
 				}
 			case notification.LibraryName:
 				if action[i], err = notification.MakeTask(&actionSpec[i]); err != nil {
+					// each task library corresponds to a case statement
+					break Loop
+				}
+			case "metrics":
+				if action[i], err = metrics.MakeTask(&actionSpec[i]); err != nil {
 					break Loop
 				}
 			default:
