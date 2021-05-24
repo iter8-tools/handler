@@ -2,8 +2,8 @@
 package utils
 
 import (
-	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
@@ -82,14 +82,14 @@ func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan er
 	}
 }
 
-// GetJSONBytes downloads JSON from URL and reads it into a byte slice
-func GetJsonBytes(url string, p []byte) (int, error) {
+// GetJSONBytes downloads JSON from URL and returns a byte slice
+func GetJsonBytes(url string) ([]byte, error) {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
 	r, err := myClient.Get(url)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	defer r.Body.Close()
-
-	return json.NewDecoder(r.Body).Buffered().Read(p)
+	body, err := ioutil.ReadAll(r.Body)
+	return body, err
 }

@@ -102,7 +102,7 @@ func (t *CollectTask) Run(ctx context.Context) error {
 // fortioDataForVersion collects fortio data for a given version
 func (t *CollectTask) fortioDataForVersion(j int, ctx context.Context) (map[string]interface{}, error) {
 	var execOut bytes.Buffer
-	var errOut bytes.Buffer
+	// var errOut bytes.Buffer
 	args := []string{"load"}
 	args = append(args, "-t", *t.With.Time)
 	args = append(args, "-qps", fmt.Sprintf("%f", *t.With.Versions[j].QPS))
@@ -111,11 +111,12 @@ func (t *CollectTask) fortioDataForVersion(j int, ctx context.Context) (map[stri
 	}
 	// download JSON payload -- if specified
 	if t.With.PayloadURL != nil {
-		var content []byte
-		_, err := utils.GetJsonBytes(*t.With.PayloadURL, content)
+		content, err := utils.GetJsonBytes(*t.With.PayloadURL)
 		if err != nil {
+			log.Error("Error while getting JSON bytes: ", err)
 			return nil, err
 		}
+		log.Trace("Got json bytes")
 
 		tmpfile, err := ioutil.TempFile("/tmp", "payload.json")
 		if err != nil {
@@ -141,8 +142,8 @@ func (t *CollectTask) fortioDataForVersion(j int, ctx context.Context) (map[stri
 	args = append(args, t.With.Versions[j].URL)
 	cmd := exec.Command("fortio", args...)
 	cmd.Stdout = &execOut
-	cmd.Stderr = &errOut
-	log.Info("Running task: " + cmd.String())
+	cmd.Stderr = os.Stdout
+	log.Info("Invoking: " + cmd.String())
 	log.Trace(args)
 	err := cmd.Run()
 
