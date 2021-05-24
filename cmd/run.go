@@ -78,7 +78,7 @@ func run(cmd *cobra.Command, args []string) error {
 				var action base.Action
 				if action, err = GetAction(exp, actionSpec); err == nil {
 					ctx := context.WithValue(context.Background(), base.ContextKey("experiment"), exp)
-					log.Trace("creating context for experiment")
+					log.Trace("created context for experiment")
 					err = action.Run(ctx)
 					if err == nil {
 						return nil
@@ -100,7 +100,7 @@ var runCmd = &cobra.Command{
 	Long:  `Sequentially execute all tasks in the specified action; if any task run results in an error, exit immediately with error.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := run(cmd, args); err != nil {
-			log.Error(err)
+			log.Error("Exiting with error: ", err)
 			os.Exit(1)
 		}
 	},

@@ -2,7 +2,9 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
 	"sync"
 	"time"
 
@@ -39,6 +41,11 @@ func Int32Pointer(i int32) *int32 {
 	return &i
 }
 
+// Float32Pointer takes an float32 as input, creates a new variable with the input value, and returns a pointer to the variable
+func Float32Pointer(f float32) *float32 {
+	return &f
+}
+
 // StringPointer takes a string as input, creates a new variable with the input value, and returns a pointer to the variable
 func StringPointer(s string) *string {
 	return &s
@@ -73,4 +80,16 @@ func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan er
 	case err := <-errCh:
 		return err
 	}
+}
+
+// GetJSONBytes downloads JSON from URL and reads it into a byte slice
+func GetJsonBytes(url string, p []byte) (int, error) {
+	var myClient = &http.Client{Timeout: 10 * time.Second}
+	r, err := myClient.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer r.Body.Close()
+
+	return json.NewDecoder(r.Body).Buffered().Read(p)
 }

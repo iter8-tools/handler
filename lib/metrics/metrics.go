@@ -22,7 +22,8 @@ func init() {
 func MakeTask(t *v2alpha2.TaskSpec) (base.Task, error) {
 	switch t.Task {
 	case "metrics/collect":
-		return MakeCollect(t)
+		bt, err := MakeCollect(t)
+		return bt, err
 	default:
 		return nil, errors.New("Unknown task: " + t.Task)
 	}

@@ -1,9 +1,14 @@
 package metrics
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"os"
+	"os/exec"
 	"sync"
 	"time"
 
@@ -19,7 +24,7 @@ type Version struct {
 	// VersionInfo field of the experiment
 	Name string `json:"name" yaml:"name"`
 	// how many queries per second will be sent to this version; optional; default 8
-	QPS *int32 `json:"qps,omitempty" yaml:"qps,omitempty"`
+	QPS *float32 `json:"qps,omitempty" yaml:"qps,omitempty"`
 	// HTTP headers to use in the query for this version; optional
 	Headers map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
 	// URL to use for querying this version
@@ -34,8 +39,6 @@ type CollectInputs struct {
 	Versions []Version `json:"versions" yaml:"versions"`
 	// URL of the JSON file to send during the query; optional
 	PayloadURL *string `json:"payloadURL,omitempty" yaml:"payloadURL,omitempty"`
-	// HTTP method which can be GET or POST; optional; default GET
-	Method *utils.HTTPMethod `json:"method,omitempty" yaml:"method,omitempty"`
 }
 
 // CollectTask enables collection of Iter8's built-in metrics.
@@ -67,7 +70,7 @@ func (t *CollectTask) Run(ctx context.Context) error {
 				// Decrement the counter when the goroutine completes.
 				defer wg.Done()
 				// Get Fortio data for version
-				data, err := t.fortioDataForVersion(k)
+				data, err := t.fortioDataForVersion(k, ctx)
 				if err == nil {
 					// Update fortioData
 					lock.Lock()
@@ -87,7 +90,7 @@ func (t *CollectTask) Run(ctx context.Context) error {
 		return err
 	}
 	if err = utils.WaitTimeoutOrError(&wg, dur+30*time.Second, errCh); err != nil {
-		log.Error(err)
+		log.Error("Got error: ", err)
 		return err
 	} else {
 		log.Trace("Wait group finished normally")
@@ -97,8 +100,53 @@ func (t *CollectTask) Run(ctx context.Context) error {
 }
 
 // fortioDataForVersion collects fortio data for a given version
-func (t *CollectTask) fortioDataForVersion(j int) (map[string]interface{}, error) {
-	return make(map[string]interface{}), nil
+func (t *CollectTask) fortioDataForVersion(j int, ctx context.Context) (map[string]interface{}, error) {
+	var execOut bytes.Buffer
+	var errOut bytes.Buffer
+	args := []string{"load"}
+	args = append(args, "-t", *t.With.Time)
+	args = append(args, "-qps", fmt.Sprintf("%f", *t.With.Versions[j].QPS))
+	for header, value := range t.With.Versions[j].Headers {
+		args = append(args, "-H", fmt.Sprintf("%v: %v", header, value))
+	}
+	// download JSON payload -- if specified
+	if t.With.PayloadURL != nil {
+		var content []byte
+		_, err := utils.GetJsonBytes(*t.With.PayloadURL, content)
+		if err != nil {
+			return nil, err
+		}
+
+		tmpfile, err := ioutil.TempFile("/tmp", "payload.json")
+		if err != nil {
+			log.Fatal(err)
+			return nil, err
+		}
+
+		defer os.Remove(tmpfile.Name()) // clean up
+
+		if _, err := tmpfile.Write(content); err != nil {
+			tmpfile.Close()
+			log.Fatal(err)
+			return nil, err
+		}
+		if err := tmpfile.Close(); err != nil {
+			log.Fatal(err)
+			return nil, err
+		}
+
+		args = append(args, "-payload-file", tmpfile.Name())
+	}
+
+	args = append(args, t.With.Versions[j].URL)
+	cmd := exec.Command("fortio", args...)
+	cmd.Stdout = &execOut
+	cmd.Stderr = &errOut
+	log.Info("Running task: " + cmd.String())
+	log.Trace(args)
+	err := cmd.Run()
+
+	return make(map[string]interface{}), err
 }
 
 // InitializeDefaults sets the default values for optional fields that are empty
@@ -106,16 +154,9 @@ func (t *CollectTask) InitializeDefaults() {
 	if t.With.Time == nil {
 		t.With.Time = utils.StringPointer("5s")
 	}
-	if t.With.Method == nil {
-		if t.With.PayloadURL == nil {
-			t.With.Method = utils.HTTPMethodPointer(utils.GET)
-		} else {
-			t.With.Method = utils.HTTPMethodPointer(utils.POST)
-		}
-	}
 	for i := 0; i < len(t.With.Versions); i++ {
 		if t.With.Versions[i].QPS == nil {
-			t.With.Versions[i].QPS = utils.Int32Pointer(8)
+			t.With.Versions[i].QPS = utils.Float32Pointer(8)
 		}
 	}
 }
@@ -127,13 +168,13 @@ func MakeCollect(t *v2alpha2.TaskSpec) (base.Task, error) {
 	}
 	var err error
 	var jsonBytes []byte
-	var it base.Task
+	var ct base.Task
 	// convert t to jsonBytes
 	jsonBytes, err = json.Marshal(t)
 	// convert jsonString to CollectTask
 	if err == nil {
-		ct := &CollectTask{}
+		ct = &CollectTask{}
 		err = json.Unmarshal(jsonBytes, &ct)
 	}
-	return it, err
+	return ct, err
 }
