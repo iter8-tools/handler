@@ -4,7 +4,7 @@ metadata:
   generation: 1
   name: metrics-collect-exp
   namespace: default
-spec: 
+spec:
   criteria: 
     indicators: 
       - builtin-metrics/95th-percentile-tail-latency

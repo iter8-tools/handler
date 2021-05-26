@@ -475,6 +475,8 @@ github.com/iter8-tools/etc3 v0.1.20 h1:x+Ybl7ZJlngSZ4FtdW65U62x/PGa6JgTiw25od7Cy
 github.com/iter8-tools/etc3 v0.1.20/go.mod h1:2a/957kXNub2R1aXsrHOtxWorARmSg1rGQ4oeqZkER4=
 github.com/iter8-tools/etc3 v0.1.23 h1:PYxzMmLoz2I2To9o5qhoSvXWfaoi7l6oqXukZnJIdmM=
 github.com/iter8-tools/etc3 v0.1.23/go.mod h1:2a/957kXNub2R1aXsrHOtxWorARmSg1rGQ4oeqZkER4=
+github.com/iter8-tools/etc3 v0.1.24 h1:lJZDvs2tikUHTuEdhVgkz4mKZS+u1c2ITI8vjLxOnr4=
+github.com/iter8-tools/etc3 v0.1.24/go.mod h1:2a/957kXNub2R1aXsrHOtxWorARmSg1rGQ4oeqZkER4=
 github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af/go.mod h1:Nht3zPeWKUH0NzdCt2Blrr5ys8VGpn0CEB0cQHVjt7k=
 github.com/jmespath/go-jmespath v0.3.0 h1:OS12ieG61fsCg5+qLJ+SsW9NicxNkg3b25OyT2yCeUc=
 github.com/jmespath/go-jmespath v0.3.0/go.mod h1:9QtRXoHjLGCJ5IBSaohpXITPlowMeeYCZ7fLUTSywik=
