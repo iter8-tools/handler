@@ -46,6 +46,11 @@ func Float32Pointer(f float32) *float32 {
 	return &f
 }
 
+// Float64Pointer takes an float64 as input, creates a new variable with the input value, and returns a pointer to the variable
+func Float64Pointer(f float64) *float64 {
+	return &f
+}
+
 // StringPointer takes a string as input, creates a new variable with the input value, and returns a pointer to the variable
 func StringPointer(s string) *string {
 	return &s

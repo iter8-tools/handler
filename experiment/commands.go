@@ -5,6 +5,8 @@ import (
 
 	"github.com/iter8-tools/etc3/api/v2alpha2"
 	iter8 "github.com/iter8-tools/etc3/api/v2alpha2"
+	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // GetVersionRecommendedForPromotion from the experiment.
@@ -79,4 +81,18 @@ func FindVariableInVersionDetail(v *v2alpha2.VersionDetail, name string) (string
 		}
 	}
 	return "", errors.New("variable not present in VersionDetail")
+}
+
+// SetAggregatedBuiltinHists sets the experiment status field corresponding to aggregated built in hists
+func (e *Experiment) SetAggregatedBuiltinHists(fortioData v1.JSON) {
+	if e.Status.Analysis == nil {
+		e.Status.Analysis = &v2alpha2.Analysis{}
+	}
+	abh := &v2alpha2.AggregatedBuiltinHists{}
+	e.Status.Analysis.AggregatedBuiltinHists = abh
+	abh.AnalysisMetaData = v2alpha2.AnalysisMetaData{
+		Provenance: "Builtin metrics collector",
+		Timestamp:  metav1.Now(),
+	}
+	abh.Data = fortioData
 }

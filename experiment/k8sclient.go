@@ -138,3 +138,14 @@ func UpdateInClusterExperiment(e *Experiment) (err error) {
 	}
 	return err
 }
+
+//
+
+// UpdateInClusterExperimentStatus updates the experiment status within cluster.
+func UpdateInClusterExperimentStatus(e *Experiment) (err error) {
+	var c client.Client
+	if c, err = GetClient(); err == nil {
+		err = c.Status().Update(context.Background(), e)
+	}
+	return err
+}
