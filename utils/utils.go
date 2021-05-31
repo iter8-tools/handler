@@ -56,11 +56,14 @@ func StringPointer(s string) *string {
 	return &s
 }
 
+// HTTPMethod is either GET or POST
 type HTTPMethod string
 
 const (
-	GET  HTTPMethod = "GET"
-	POST            = "POST"
+	// GET method
+	GET HTTPMethod = "GET"
+	// POST method
+	POST = "POST"
 )
 
 // HTTPMethodPointer takes an HTTPMethod as input, creates a new variable with the input value, and returns a pointer to the variable
@@ -90,7 +93,7 @@ func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan er
 }
 
 // GetJSONBytes downloads JSON from URL and returns a byte slice
-func GetJsonBytes(url string) ([]byte, error) {
+func GetJSONBytes(url string) ([]byte, error) {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
 	r, err := myClient.Get(url)
 	if err != nil || r.StatusCode >= 400 {

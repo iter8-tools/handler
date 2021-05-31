@@ -1,4 +1,5 @@
 /*
+Package metrics with collect task
 metrics/collect enables load generation for versions and collection of built-in metrics
 testdata/metricscollect/metricscollect.yaml provides a sample experiment with this task
 testdata/metricscollect/fortiooutput.json provides a sample output from Fortio
@@ -184,7 +185,7 @@ func getResultFromFile(fortioOutputFile string) (*Result, error) {
 
 // payloadFile downloads JSON payload from a URL into a temp file, and returns its name
 func payloadFile(url string) (string, error) {
-	content, err := utils.GetJsonBytes(url)
+	content, err := utils.GetJSONBytes(url)
 	if err != nil {
 		log.Error("Error while getting JSON bytes: ", err)
 		return "", err
@@ -356,9 +357,8 @@ func (t *CollectTask) Run(ctx context.Context) error {
 	if err = utils.WaitTimeoutOrError(&wg, dur+30*time.Second, errCh); err != nil {
 		log.Error("Got error: ", err)
 		return err
-	} else {
-		log.Trace("Wait group finished normally")
 	}
+	log.Trace("Wait group finished normally")
 
 	// Update experiment status with results
 	// update to experiment status will result in reconcile request to etc3

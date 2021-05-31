@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/base"
@@ -78,6 +79,30 @@ var _ = Describe("metrics library", func() {
 
 			By("confirming that the experiment looks right")
 			Expect(exp3.Status.Analysis.AggregatedBuiltinHists).ToNot(BeNil())
+
+			By("running the metrics/collect task again")
+			Expect(ct.Run(ctx)).ToNot(HaveOccurred())
+
+			By("getting the experiment from cluster")
+			exp4 := &experiment.Experiment{}
+			Expect(k8sClient.Get(context.Background(), types.NamespacedName{
+				Namespace: "default",
+				Name:      "metrics-collect-exp",
+			}, exp4)).To(Succeed())
+
+			By("confirming that the experiment looks right")
+			fortioData := make(map[string]*Result)
+
+			Expect(exp4.Status.Analysis.AggregatedBuiltinHists).ToNot(BeNil())
+			jsonBytes, err := json.Marshal(exp4.Status.Analysis.AggregatedBuiltinHists.Data)
+			// convert jsonBytes to fortioData
+			Expect(err).ShouldNot(HaveOccurred())
+			err = json.Unmarshal(jsonBytes, &fortioData)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(fortioData).ToNot(BeNil())
+			Expect(fortioData["default"]).ToNot(BeNil())
+			Expect(fortioData["canary"]).ToNot(BeNil())
+			Expect(fortioData["canary"].DurationHistogram.Count).To(Equal(80))
 		})
 	})
 })
