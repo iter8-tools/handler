@@ -93,8 +93,8 @@ func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan er
 func GetJsonBytes(url string) ([]byte, error) {
 	var myClient = &http.Client{Timeout: 10 * time.Second}
 	r, err := myClient.Get(url)
-	if err != nil {
-		return nil, err
+	if err != nil || r.StatusCode >= 400 {
+		return nil, errors.New("Error while fetching payload")
 	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)

@@ -77,5 +77,16 @@ func TestGetResultFromFile(t *testing.T) {
 	res, err = getResultFromFile(fileName)
 	assert.Error(t, err)
 	assert.Nil(t, res)
+}
 
+func TestPayloadFile(t *testing.T) {
+	url := "https://httpbin.org/stream/1"
+	fileName, err := payloadFile(url)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, fileName)
+
+	url = "https://httpbin.org/undef"
+	fileName, err = payloadFile(url)
+	assert.Error(t, err)
+	assert.Empty(t, fileName)
 }
