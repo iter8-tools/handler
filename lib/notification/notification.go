@@ -26,7 +26,7 @@ func MakeTask(t *v2alpha2.TaskSpec) (base.Task, error) {
 	switch t.Task {
 	case LibraryName + "/" + SlackTaskName:
 		return MakeSlackTask(t)
-	// add additional tasks here options here
+	// add additional tasks here
 	default:
 		return nil, errors.New("Unknown task: " + t.Task)
 	}

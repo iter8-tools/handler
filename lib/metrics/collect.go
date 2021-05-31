@@ -26,6 +26,11 @@ import (
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
+const (
+	// CollectTaskName is the name of the task this file implements
+	CollectTaskName string = "collect"
+)
+
 // Version contains header and url information needed to send requests to each version.
 type Version struct {
 	// name of the version
