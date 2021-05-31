@@ -68,8 +68,10 @@ func HTTPMethodPointer(h HTTPMethod) *HTTPMethod {
 	return &h
 }
 
-// WaitTimeout waits for the waitgroup for the specified max timeout.
-// Returns true if waiting timed out.
+// WaitTimeoutOrError waits for one of the following three events
+// 1) all goroutines in the waitgroup to finish normally -- no error is returned
+// 2) a timeout occurred before all go routines could finish normally -- an error is returned
+// 3) an error in the errCh channel sent by one of the goroutines -- an error is returned
 // See https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
 func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan error) error {
 	c := make(chan struct{})
@@ -78,11 +80,11 @@ func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan er
 		wg.Wait()
 	}()
 	select {
-	case <-c:
-		return nil // completed normally
-	case <-time.After(timeout):
+	case <-c: // completed normally
+		return nil
+	case <-time.After(timeout): // timeout
 		return errors.New("Timedout waiting for fortio data collection") // timed out
-	case err := <-errCh:
+	case err := <-errCh: // error in channel
 		return err
 	}
 }
