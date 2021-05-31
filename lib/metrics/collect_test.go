@@ -72,4 +72,10 @@ func TestGetResultFromFile(t *testing.T) {
 	res, err := getResultFromFile(fileName)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
+
+	fileName = utils.CompletePath("../../", "testdata/metricscollect/nooutput.json")
+	res, err = getResultFromFile(fileName)
+	assert.Error(t, err)
+	assert.Nil(t, res)
+
 }
