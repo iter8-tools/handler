@@ -53,7 +53,7 @@ Loop:
 					// each task library corresponds to a case statement
 					break Loop
 				}
-			case "metrics":
+			case metrics.LibraryName:
 				if action[i], err = metrics.MakeTask(&actionSpec[i]); err != nil {
 					break Loop
 				}
