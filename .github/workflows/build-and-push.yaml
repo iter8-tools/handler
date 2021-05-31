@@ -39,9 +39,13 @@ jobs:
         # move to a long-term location and put it on your path
         # (you'll need to set the KUBEBUILDER_ASSETS env var if you put it somewhere else)
         sudo mv /tmp/kubebuilder_2.3.1_${os}_${arch} /usr/local/kubebuilder
-        export PATH=$PATH:/usr/local/kubebuilder/bin      
+        export PATH=$PATH:/usr/local/kubebuilder/bin
+    - name: Get Fortio
+      run: go get fortio.org/fortio
     - name: Test
-      run: go test ./... -coverprofile=coverage.out
+      run: | 
+        export PATH=$PATH:$(go env GOPATH)
+        go test ./... -coverprofile=coverage.out
     - name: Enforce coverage
       run: |
         export COVERAGE=$(go tool cover -func coverage.out | grep total | awk '{print substr($3, 1, length($3)-1)}')
