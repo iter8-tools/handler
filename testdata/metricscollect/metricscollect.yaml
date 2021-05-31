@@ -39,12 +39,11 @@ spec:
       start:
       - task: metrics/collect
         with:
-          payloadURL: https://raw.githubusercontent.com/kubeflow/kfserving/master/docs/samples/v1beta1/rollout/input.json
           versions:
           - name: default
-            url: http://localhost/post
+            url: https://httpbin.org
           - name: canary
-            url: http://localhost/post
+            url: https://httpbin.org/stream/1
     testingPattern: Canary
     deploymentPattern: Progressive
     weights: 
