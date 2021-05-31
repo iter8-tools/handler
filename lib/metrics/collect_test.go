@@ -3,6 +3,7 @@ package metrics
 import (
 	"testing"
 
+	"github.com/iter8-tools/handler/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,4 +65,11 @@ func TestAggregate(t *testing.T) {
 	assert.Equal(t, 2, u["v1"].RetCodes["500"])
 	assert.Equal(t, 3, len(u["v1"].DurationHistogram.Data))
 
+}
+
+func TestGetResultFromFile(t *testing.T) {
+	fileName := utils.CompletePath("../../", "testdata/metricscollect/fortiooutput.json")
+	res, err := getResultFromFile(fileName)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
 }
