@@ -74,6 +74,19 @@ func MakeCollect(t *v2alpha2.TaskSpec) (base.Task, error) {
 	return ct, err
 }
 
+// InitializeDefaults sets default values for time duration and QPS for Fortio run
+// Default values are set only if the field is non-empty
+func (t *CollectTask) InitializeDefaults() {
+	if t.With.Time == nil {
+		t.With.Time = utils.StringPointer("5s")
+	}
+	for i := 0; i < len(t.With.Versions); i++ {
+		if t.With.Versions[i].QPS == nil {
+			t.With.Versions[i].QPS = utils.Float32Pointer(8)
+		}
+	}
+}
+
 ////
 /////////////
 ////
@@ -255,19 +268,6 @@ func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
 
 	log.Trace(ifr)
 	return ifr, err
-}
-
-// InitializeDefaults sets default values for time duration and QPS for Fortio run
-// Default values are set only if the field is non-empty
-func (t *CollectTask) InitializeDefaults() {
-	if t.With.Time == nil {
-		t.With.Time = utils.StringPointer("5s")
-	}
-	for i := 0; i < len(t.With.Versions); i++ {
-		if t.With.Versions[i].QPS == nil {
-			t.With.Versions[i].QPS = utils.Float32Pointer(8)
-		}
-	}
 }
 
 // Run executes the metrics/collect task

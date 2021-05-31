@@ -7,6 +7,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestInitializeDefaults(t *testing.T) {
+	ct := CollectTask{
+		Library: "metrics",
+		Task:    "collect",
+		With: CollectInputs{
+			Versions: []Version{{
+				Name: "default",
+				URL:  "https://httpbin.org",
+			}},
+		},
+	}
+	ct.InitializeDefaults()
+	assert.Equal(t, "5s", *ct.With.Time)
+	assert.Equal(t, utils.Float32Pointer(8.0), *&ct.With.Versions[0].QPS)
+}
+
 func TestAggregate(t *testing.T) {
 	oldResults := map[string]*Result{}
 	res := Result{
