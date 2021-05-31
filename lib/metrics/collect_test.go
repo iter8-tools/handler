@@ -106,3 +106,20 @@ func TestPayloadFile(t *testing.T) {
 	assert.Error(t, err)
 	assert.Empty(t, fileName)
 }
+
+func TestResultForVersionresultForVersion(t *testing.T) {
+	ct := CollectTask{
+		Library: "metrics",
+		Task:    "collect",
+		With: CollectInputs{
+			Versions: []Version{{
+				Name: "default",
+				URL:  "https://httpbin.org",
+			}},
+		},
+	}
+	ct.InitializeDefaults()
+	res, err := ct.resultForVersion(0, "")
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+}

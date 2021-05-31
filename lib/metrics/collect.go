@@ -212,9 +212,9 @@ func payloadFile(url string) (string, error) {
 
 // resultForVersion collects Fortio result for a given version
 func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
-	// the basic idea is to run Fortio shell command with proper args
+	// the main idea is to run Fortio shell command with proper args
 	// collect Fortio output as a file
-	// and extract the data from the file
+	// and extract the result from the file, and return the result
 
 	var execOut bytes.Buffer
 	// appending Fortio load subcommand
