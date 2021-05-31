@@ -1,3 +1,8 @@
+/*
+metrics/collect enables load generation for versions and collection of built-in metrics
+testdata/metricscollect/metricscollect.yaml provides a sample experiment with this task
+testdata/metricscollect/fortiooutput.json provides a sample output from Fortio
+*/
 package metrics
 
 import (
@@ -80,32 +85,39 @@ type DurationSample struct {
 	Count int
 }
 
-// Result is the result of a single Fortio run; it contains the result for a single version
-type Result struct {
-	Count    int
-	Min      float64
-	Max      float64
-	Sum      float64
-	Data     []DurationSample
-	RetCodes map[string]int
+// DurationHist is the Fortio duration histogram
+type DurationHist struct {
+	Count int
+	Max   float64
+	Sum   float64
+	Data  []DurationSample
 }
 
-// aggregate existing internal results for all versions, with a new internal result for a given version
+// Result is the result of a single Fortio run; it contains the result for a single version
+type Result struct {
+	DurationHistogram DurationHist
+	RetCodes          map[string]int
+}
+
+// aggregate existing results, with a new result for a specific version
 func aggregate(oldResults map[string]*Result, version string, newResult *Result) map[string]*Result {
+	// there are no existing results...
 	if oldResults == nil {
 		m := make(map[string]*Result)
 		m[version] = newResult
 		return m
 	}
 	if updatedResult, ok := oldResults[version]; ok {
-		// aggregate
-		updatedResult.Count += newResult.Count
-		updatedResult.Min = math.Min(oldResults[version].Min, newResult.Min)
-		updatedResult.Max = math.Max(oldResults[version].Max, newResult.Max)
-		updatedResult.Sum = oldResults[version].Sum + newResult.Sum
+		// there are existing results for the input version
+		// aggregate count, max and sum
+		updatedResult.DurationHistogram.Count += newResult.DurationHistogram.Count
+		updatedResult.DurationHistogram.Max = math.Max(oldResults[version].DurationHistogram.Max, newResult.DurationHistogram.Max)
+		updatedResult.DurationHistogram.Sum = oldResults[version].DurationHistogram.Sum + newResult.DurationHistogram.Sum
 
-		updatedResult.Data = append(updatedResult.Data, newResult.Data...)
+		// aggregation duration histogram data
+		updatedResult.DurationHistogram.Data = append(updatedResult.DurationHistogram.Data, newResult.DurationHistogram.Data...)
 
+		// aggregate return code counts
 		if updatedResult.RetCodes == nil {
 			updatedResult.RetCodes = newResult.RetCodes
 		} else {
@@ -118,12 +130,15 @@ func aggregate(oldResults map[string]*Result, version string, newResult *Result)
 			}
 		}
 	} else {
+		// there are no existing results for the input version
 		oldResults[version] = newResult
 	}
+	// this is efficient because oldResults is a map with pointer values
+	// no deep copies of structs
 	return oldResults
 }
 
-// getResultFromFile reads the contents from a Fortio output file and returns it
+// getResultFromFile reads the contents from a Fortio output file and returns it as a Result
 func getResultFromFile(fortioOutputFile string) (*Result, error) {
 	// open JSON file
 	jsonFile, err := os.Open(fortioOutputFile)
@@ -132,10 +147,11 @@ func getResultFromFile(fortioOutputFile string) (*Result, error) {
 		log.Error(err)
 		return nil, err
 	}
-	// defer the closing of our jsonFile so that we can parse it later on
+
+	// defer the closing of jsonFile so that we can parse it below
 	defer jsonFile.Close()
 
-	// read our opened jsonFile as a byte array.
+	// read jsonFile as a byte array.
 	bytes, err := ioutil.ReadAll(jsonFile)
 	// if ioutil.ReadAll returns an error, handle it
 	if err != nil {
@@ -143,15 +159,14 @@ func getResultFromFile(fortioOutputFile string) (*Result, error) {
 		return nil, err
 	}
 
-	var ir Result
-	err = json.Unmarshal(bytes, &ir)
-	// if json.Unmarshal returns an error, handle it
+	// unmarshal the result and return
+	var res Result
+	err = json.Unmarshal(bytes, &res)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-
-	return &ir, nil
+	return &res, nil
 }
 
 // payloadFile downloads JSON payload from a URL into a temp file, and returns its name
@@ -182,11 +197,14 @@ func payloadFile(url string) (string, error) {
 	return tmpfile.Name(), nil
 }
 
-// resultForVersion collects fortio data for a given version
+// resultForVersion collects Fortio result for a given version
 func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
+	// the basic idea is to run Fortio shell command with proper args
+	// collect Fortio output as a file
+	// and extract the data from the file
+
 	var execOut bytes.Buffer
-	// var errOut bytes.Buffer
-	// append fortio subcommand
+	// appending Fortio load subcommand
 	args := []string{"load"}
 	// append Fortio time flag
 	args = append(args, "-t", *t.With.Time)
@@ -196,12 +214,12 @@ func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
 	for header, value := range t.With.Versions[j].Headers {
 		args = append(args, "-H", fmt.Sprintf("%v: %v", header, value))
 	}
-	// download JSON payload -- if specified; and append
+	// download JSON payload if specified; and append Fortio ayload-file flag
 	if t.With.PayloadURL != nil {
 		args = append(args, "-payload-file", pf)
 	}
 
-	// create json output file; and append
+	// create json output file; and Fortio append json flag
 	jsonOutputFile, err := ioutil.TempFile("/tmp", "output.json.")
 	if err != nil {
 		log.Fatal(err)
@@ -210,7 +228,7 @@ func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
 	args = append(args, "-json", jsonOutputFile.Name())
 	jsonOutputFile.Close()
 
-	// append URL to be queried
+	// append URL to be queried by Fortio
 	args = append(args, t.With.Versions[j].URL)
 
 	// setup Fortio command
@@ -226,7 +244,10 @@ func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
 		return nil, err
 	}
 
+	// extract result from Fortio json output file
 	ifr, err := getResultFromFile(jsonOutputFile.Name())
+	log.Info("Got result from file")
+	log.Info(ifr)
 	if err != nil {
 		log.Fatal(err)
 		return nil, err
@@ -236,7 +257,8 @@ func (t *CollectTask) resultForVersion(j int, pf string) (*Result, error) {
 	return ifr, err
 }
 
-// InitializeDefaults sets the default values for optional fields in the collect task that are empty
+// InitializeDefaults sets default values for time duration and QPS for Fortio run
+// Default values are set only if the field is non-empty
 func (t *CollectTask) InitializeDefaults() {
 	if t.With.Time == nil {
 		t.With.Time = utils.StringPointer("5s")
@@ -248,12 +270,17 @@ func (t *CollectTask) InitializeDefaults() {
 	}
 }
 
-// Run executes a CollectTask
-// figure out error handling every step of the way here ...
+// Run executes the metrics/collect task
+// Todo: error handling
 func (t *CollectTask) Run(ctx context.Context) error {
 	log.Trace("collect task run started...")
 	t.InitializeDefaults()
+	// we would like to query versions in parallel
+	// sync waitgroup is a mechanism that enables this
 	var wg sync.WaitGroup
+
+	// if experiment already has fortio data, initialize them
+	// this is possible if this task is run in loop actions repeatedly
 	fortioData := make(map[string]*Result)
 	exp, err := experiment.GetExperimentFromContext(ctx)
 	if err != nil {
@@ -269,13 +296,15 @@ func (t *CollectTask) Run(ctx context.Context) error {
 			return err
 		}
 	}
+
 	// lock ensures thread safety while updating fortioData from go routines
 	var lock sync.Mutex
-	// if errors occur in one of the parallel threads, errCh is used to communicate them
+
+	// if errors occur in one of the parallel go routines, errCh is used to communicate them
 	errCh := make(chan error)
 	defer close(errCh)
 
-	// download JSON from URL -- if specified
+	// download JSON from URL if specified
 	// this is intended to be used as a JSON payload file by Fortio
 	tmpfileName := ""
 	if t.With.PayloadURL != nil {
@@ -285,8 +314,9 @@ func (t *CollectTask) Run(ctx context.Context) error {
 			return err
 		}
 	}
-	defer os.Remove(tmpfileName) // clean up
+	defer os.Remove(tmpfileName) // clean up later
 
+	// execute fortio queries to versions in parallel
 	for j := range t.With.Versions {
 		// Increment the WaitGroup counter.
 		wg.Add(1)
@@ -296,15 +326,22 @@ func (t *CollectTask) Run(ctx context.Context) error {
 			defer wg.Done()
 			// Get Fortio data for version
 			data, err := t.resultForVersion(k, tmpfileName)
+			log.Info("Result for version: " + t.With.Versions[k].Name)
+			log.Info(data)
 			if err == nil {
-				// Update fortioData
+				// Update fortioData in a threadsafe manner
 				lock.Lock()
 				fortioData = aggregate(fortioData, t.With.Versions[k].Name, data)
 				lock.Unlock()
 			} else {
+				// if any error occured in this go routine, send it through the error channel
+				// this helps metrics/collect task exit immediately upon error
 				errCh <- err
 			}
 		}(j)
+		// never use loop variable directly within the inner go routine as it will get overwritten in loop iterations
+		// go func is invoked with its arg k set to the value of j
+		// eliminating 'k' and simply plugging 'j' in t.With.Versions[k].Name above will not work, and will result in the ultra helpful linter warning
 	}
 
 	// See https://stackoverflow.com/questions/32840687/timeout-for-waitgroup-wait
@@ -313,6 +350,9 @@ func (t *CollectTask) Run(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	// wait for WaitGroup to be done... normal execution
+	// timeout ... abnormal execution
+	// error on errCh ... abnormal execution
 	if err = utils.WaitTimeoutOrError(&wg, dur+30*time.Second, errCh); err != nil {
 		log.Error("Got error: ", err)
 		return err
@@ -321,6 +361,8 @@ func (t *CollectTask) Run(ctx context.Context) error {
 	}
 
 	// Update experiment status with results
+	// update to experiment status will result in reconcile request to etc3
+	// unless the task runner job executing this action is completed, this request will not have have an immediate effect in the experiment reconcilation process
 	bytes, err := json.Marshal(fortioData)
 	if err != nil {
 		return err
