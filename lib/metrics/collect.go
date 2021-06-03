@@ -29,6 +29,12 @@ import (
 const (
 	// CollectTaskName is the name of the task this file implements
 	CollectTaskName string = "collect"
+
+	// DefaultQPS is the default value of QPS (queries per sec) in collect task inputs
+	DefaultQPS float32 = 8
+
+	// DefaultTime is the default value of time (duration of queries) in collect task inputs
+	DefaultTime string = "5s"
 )
 
 // Version contains header and url information needed to send requests to each version.
@@ -64,8 +70,8 @@ type CollectTask struct {
 
 // MakeCollect constructs a CollectTask out of a collect task spec
 func MakeCollect(t *v2alpha2.TaskSpec) (base.Task, error) {
-	if t.Task != "metrics/collect" {
-		return nil, errors.New("library and task need to be 'metrics' and 'collect'")
+	if t.Task != LibraryName+"/"+CollectTaskName {
+		return nil, errors.New("library and task need to be " + LibraryName + " and " + CollectTaskName)
 	}
 	var err error
 	var jsonBytes []byte
@@ -84,11 +90,11 @@ func MakeCollect(t *v2alpha2.TaskSpec) (base.Task, error) {
 // Default values are set only if the field is non-empty
 func (t *CollectTask) InitializeDefaults() {
 	if t.With.Time == nil {
-		t.With.Time = utils.StringPointer("5s")
+		t.With.Time = utils.StringPointer(DefaultTime)
 	}
 	for i := 0; i < len(t.With.Versions); i++ {
 		if t.With.Versions[i].QPS == nil {
-			t.With.Versions[i].QPS = utils.Float32Pointer(8)
+			t.With.Versions[i].QPS = utils.Float32Pointer(DefaultQPS)
 		}
 	}
 }
