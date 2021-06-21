@@ -89,3 +89,19 @@ func TestBashRun(t *testing.T) {
 	err = action.Run(ctx)
 	assert.NoError(t, err)
 }
+
+func TestMakePromoteKubectlTask(t *testing.T) {
+	namespace, _ := json.Marshal("default")
+	manifest, _ := json.Marshal("promote.yaml")
+	task, err := MakeTask(&v2alpha2.TaskSpec{
+		Task: LibraryName + "/" + PromoteKubectlTaskName,
+		With: map[string]apiextensionsv1.JSON{
+			"namespace": {Raw: namespace},
+			"manifest":  {Raw: manifest},
+		},
+	})
+	assert.NotEmpty(t, task)
+	assert.NoError(t, err)
+	assert.Equal(t, "default", *task.(*PromoteKubectlTask).With.Namespace)
+	assert.Equal(t, "promote.yaml", task.(*PromoteKubectlTask).With.Manifest)
+}

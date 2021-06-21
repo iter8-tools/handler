@@ -27,6 +27,8 @@ func MakeTask(t *v2alpha2.TaskSpec) (base.Task, error) {
 		return MakeExec(t)
 	case LibraryName + "/" + BashTaskName:
 		return MakeBashTask(t)
+	case LibraryName + "/" + PromoteKubectlTaskName:
+		return MakePromoteKubectlTask(t)
 	default:
 		return nil, errors.New("Unknown task: " + t.Task)
 	}
