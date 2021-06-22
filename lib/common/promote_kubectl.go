@@ -17,9 +17,11 @@ const (
 
 // PromoteKubectlInputs contain the name and arguments of the command to be executed.
 type PromoteKubectlInputs struct {
+	Manifest string `json:"manifest" yaml:"manifest"`
 	//+optional
 	Namespace *string `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	Manifest  string  `json:"manifest" yaml:"manifest"`
+	//+optional
+	Recursive *bool `json:"recursive,omitempty" yaml:"recursive,omitempty"`
 }
 
 // PromoteKubectlTask encapsulates a promotion details.
@@ -46,15 +48,19 @@ func MakePromoteKubectlTask(t *v2alpha2.TaskSpec) (base.Task, error) {
 	return task, err
 }
 
-// Run the command.
-func (t *PromoteKubectlTask) Run(ctx context.Context) error {
+// ToBashTask converts a PromoteKubectl task to a Bash task
+func (t *PromoteKubectlTask) ToBashTask() *BashTask {
 	namespace := t.With.Namespace
 	if namespace == nil {
 		ns := viper.GetViper().GetString("experiment_namespace")
 		namespace = &ns
 	}
 
-	script := fmt.Sprintf("kubectl --namespace %s apply -f %s", *namespace, t.With.Manifest)
+	script := "kubectl --namespace " + *namespace
+	if t.With.Recursive != nil && *t.With.Recursive {
+		script += " --recursive"
+	}
+	script += " --filename " + t.With.Manifest
 
 	tSpec := &BashTask{
 		TaskMeta: base.TaskMeta{
@@ -65,5 +71,10 @@ func (t *PromoteKubectlTask) Run(ctx context.Context) error {
 			Script: script,
 		},
 	}
-	return tSpec.Run(ctx)
+	return tSpec
+}
+
+// Run the command.
+func (t *PromoteKubectlTask) Run(ctx context.Context) error {
+	return t.ToBashTask().Run(ctx)
 }

@@ -92,11 +92,13 @@ func TestBashRun(t *testing.T) {
 
 func TestMakePromoteKubectlTask(t *testing.T) {
 	namespace, _ := json.Marshal("default")
+	recursive, _ := json.Marshal(true)
 	manifest, _ := json.Marshal("promote.yaml")
 	task, err := MakeTask(&v2alpha2.TaskSpec{
 		Task: LibraryName + "/" + PromoteKubectlTaskName,
 		With: map[string]apiextensionsv1.JSON{
 			"namespace": {Raw: namespace},
+			"recursive": {Raw: recursive},
 			"manifest":  {Raw: manifest},
 		},
 	})
@@ -104,4 +106,8 @@ func TestMakePromoteKubectlTask(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "default", *task.(*PromoteKubectlTask).With.Namespace)
 	assert.Equal(t, "promote.yaml", task.(*PromoteKubectlTask).With.Manifest)
+	assert.Equal(t, true, *task.(*PromoteKubectlTask).With.Recursive)
+
+	bTask := *task.(*PromoteKubectlTask).ToBashTask()
+	assert.Equal(t, "kubectl --namespace default --recursive --filename promote.yaml", bTask.With.Script)
 }

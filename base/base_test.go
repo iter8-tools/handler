@@ -84,3 +84,15 @@ func TestWithVersionRecommendedForPromotion(t *testing.T) {
 	tags := NewTags().WithRecommendedVersionForPromotion(exp)
 	assert.Equal(t, "revision1", tags.M["revision"])
 }
+
+func TestWithOutVersionRecommendedForPromotion(t *testing.T) {
+	var data []byte
+	data, err := ioutil.ReadFile(filepath.Join("..", "testdata", "experiment1-norecommended.yaml"))
+	assert.NoError(t, err)
+	exp := &v2alpha2.Experiment{}
+	err = yaml.Unmarshal(data, exp)
+	assert.NoError(t, err)
+	tags := NewTags().WithRecommendedVersionForPromotion(exp)
+	assert.NotContains(t, tags.M, "revision1")
+	// assert.Equal(t, "revision1", tags.M["revision"])
+}
