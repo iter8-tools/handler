@@ -144,3 +144,39 @@ func TestMakeReadinessTask(t *testing.T) {
 	assert.Equal(t, int32(5), *task.(*ReadinessTask).With.IntervalSeconds)
 	assert.Equal(t, 2, len(task.(*ReadinessTask).With.ObjRefs))
 }
+
+func TestMakeHttpRequestTask(t *testing.T) {
+	url, _ := json.Marshal("http://postman-echo.com/post")
+	body, _ := json.Marshal("{\"hello\":\"world\"}")
+	headers, _ := json.Marshal([]v2alpha2.NamedValue{{
+		Name:  "x-foo",
+		Value: "bar",
+	}, {
+		Name:  "Authentication",
+		Value: "Basic: dXNlcm5hbWU6cGFzc3dvcmQK",
+	}})
+	task, err := MakeTask(&v2alpha2.TaskSpec{
+		Task: LibraryName + "/" + HttpRequestTaskName,
+		With: map[string]apiextensionsv1.JSON{
+			"URL":     {Raw: url},
+			"body":    {Raw: body},
+			"headers": {Raw: headers},
+		},
+	})
+	assert.NoError(t, err)
+	assert.NotEmpty(t, task)
+
+	exp, err := (&tasks.Builder{}).FromFile(filepath.Join("..", "..", "testdata", "experiment1.yaml")).Build()
+	assert.NoError(t, err)
+	ctx := context.WithValue(context.Background(), tasks.ContextKey("experiment"), exp)
+
+	req, err := task.(*HttpRequestTask).prepareRequest(ctx)
+	assert.NotEmpty(t, task)
+	assert.NoError(t, err)
+
+	assert.Equal(t, "http://postman-echo.com/post", req.URL.String())
+	assert.Equal(t, "bar", req.Header.Get("x-foo"))
+
+	err = task.(*HttpRequestTask).Run(ctx)
+	assert.NoError(t, err)
+}
