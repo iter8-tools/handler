@@ -56,7 +56,7 @@ func (t *PromoteKubectlTask) ToBashTask() *BashTask {
 		namespace = &ns
 	}
 
-	script := "kubectl --namespace " + *namespace
+	script := "kubectl apply --namespace " + *namespace
 	if t.With.Recursive != nil && *t.With.Recursive {
 		script += " --recursive"
 	}

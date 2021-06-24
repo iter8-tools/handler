@@ -109,5 +109,5 @@ func TestMakePromoteKubectlTask(t *testing.T) {
 	assert.Equal(t, true, *task.(*PromoteKubectlTask).With.Recursive)
 
 	bTask := *task.(*PromoteKubectlTask).ToBashTask()
-	assert.Equal(t, "kubectl --namespace default --recursive --filename promote.yaml", bTask.With.Script)
+	assert.Equal(t, "kubectl apply --namespace default --recursive --filename promote.yaml", bTask.With.Script)
 }
