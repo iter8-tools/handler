@@ -156,7 +156,7 @@ func TestMakeHttpRequestTask(t *testing.T) {
 		Value: "Basic: dXNlcm5hbWU6cGFzc3dvcmQK",
 	}})
 	task, err := MakeTask(&v2alpha2.TaskSpec{
-		Task: LibraryName + "/" + HttpRequestTaskName,
+		Task: LibraryName + "/" + HTTPRequestTaskName,
 		With: map[string]apiextensionsv1.JSON{
 			"URL":     {Raw: url},
 			"body":    {Raw: body},
@@ -170,13 +170,13 @@ func TestMakeHttpRequestTask(t *testing.T) {
 	assert.NoError(t, err)
 	ctx := context.WithValue(context.Background(), tasks.ContextKey("experiment"), exp)
 
-	req, err := task.(*HttpRequestTask).prepareRequest(ctx)
+	req, err := task.(*HTTPRequestTask).prepareRequest(ctx)
 	assert.NotEmpty(t, task)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "http://postman-echo.com/post", req.URL.String())
 	assert.Equal(t, "bar", req.Header.Get("x-foo"))
 
-	err = task.(*HttpRequestTask).Run(ctx)
+	err = task.(*HTTPRequestTask).Run(ctx)
 	assert.NoError(t, err)
 }

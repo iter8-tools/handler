@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -15,12 +16,12 @@ import (
 )
 
 const (
-	// HttpRequestTaskName is the name of the HTTP request task
-	HttpRequestTaskName string = "http-request"
+	// HTTPRequestTaskName is the name of the HTTP request task
+	HTTPRequestTaskName string = "http-request"
 )
 
-// HttpRequestInputs contain the name and arguments of the task.
-type HttpRequestInputs struct {
+// HTTPRequestInputs contain the name and arguments of the task.
+type HTTPRequestInputs struct {
 	URL      string                `json:"URL" yaml:"URL"`
 	Method   *v2alpha2.MethodType  `json:"method,omitempty" yaml:"method,omitempty"`
 	AuthType *v2alpha2.AuthType    `json:"authType,omitempty" yaml:"authType,omitempty"`
@@ -29,16 +30,16 @@ type HttpRequestInputs struct {
 	Body     *string               `json:"body,omitempty" yaml:"body,omitempty"`
 }
 
-// HttpRequestTask encapsulates the task.
-type HttpRequestTask struct {
+// HTTPRequestTask encapsulates the task.
+type HTTPRequestTask struct {
 	tasks.TaskMeta `json:",inline" yaml:",inline"`
-	With           HttpRequestInputs `json:"with" yaml:"with"`
+	With           HTTPRequestInputs `json:"with" yaml:"with"`
 }
 
-// MakeHttpRequestTask converts an spec to a task.
-func MakeHttpRequestTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
-	if t.Task != LibraryName+"/"+HttpRequestTaskName {
-		return nil, fmt.Errorf("library and task need to be '%s' and '%s'", LibraryName, HttpRequestTaskName)
+// MakeHTTPRequestTask converts an spec to a task.
+func MakeHTTPRequestTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
+	if t.Task != LibraryName+"/"+HTTPRequestTaskName {
+		return nil, fmt.Errorf("library and task need to be '%s' and '%s'", LibraryName, HTTPRequestTaskName)
 	}
 	var jsonBytes []byte
 	var task tasks.Task
@@ -48,19 +49,18 @@ func MakeHttpRequestTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
 		return nil, err
 	}
 	// convert jsonString to ExecTask
-	task = &HttpRequestTask{}
+	task = &HTTPRequestTask{}
 	err = json.Unmarshal(jsonBytes, &task)
 	return task, err
 }
 
-func (t *HttpRequestTask) prepareRequest(ctx context.Context) (*http.Request, error) {
+func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, error) {
 	tags := tasks.NewTags()
 	exp, err := tasks.GetExperimentFromContext(ctx)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
-	log.Trace("experiment", exp)
 
 	obj, err := exp.ToMap()
 	if err != nil {
@@ -80,10 +80,10 @@ func (t *HttpRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 	if secretName != nil {
 		secret, err := tasks.GetSecret(*secretName)
 		if err != nil {
-			tags = tags.WithSecret(secret)
+			tags = tasks.WithSecret(secret)
 		}
 	}
-	log.Info(tags)
+	log.Info("final tags: ", tags)
 
 	defaultMethod := v2alpha2.POSTMethodType
 	method := t.With.Method
@@ -125,13 +125,13 @@ func (t *HttpRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 	}
 
 	if *authType == v2alpha2.BasicAuthType {
-		usernameTemplate := "{{ .username }}"
-		passwordTemplate := "{{ .password }}"
+		usernameTemplate := "{{ .secret.username }}"
+		passwordTemplate := "{{ .secret.password }}"
 		username, _ := tags.Interpolate(&usernameTemplate)
 		password, _ := tags.Interpolate(&passwordTemplate)
 		req.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(username+":"+password)))
 	} else if *authType == v2alpha2.BearerAuthType {
-		tokenTemplate := "{{ .token }}"
+		tokenTemplate := "{{ .secret.token }}"
 		token, _ := tags.Interpolate(&tokenTemplate)
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -140,7 +140,7 @@ func (t *HttpRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 }
 
 // Run the command.
-func (t *HttpRequestTask) Run(ctx context.Context) error {
+func (t *HTTPRequestTask) Run(ctx context.Context) error {
 	req, err := t.prepareRequest(ctx)
 
 	if err != nil {
@@ -153,12 +153,21 @@ func (t *HttpRequestTask) Run(ctx context.Context) error {
 	}
 
 	resp, err := httpClient.Do(req)
-	if err == nil {
-		log.Info("RESPONSE STATUS: " + resp.Status)
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		log.Info(buf.String())
+	if err != nil {
+		log.Error(err)
+		return err
 	}
-	log.Error(err)
-	return err
+
+	log.Info("RESPONSE STATUS: " + resp.Status)
+	if resp.StatusCode >= 400 {
+
+		err = errors.New(resp.Status)
+		log.Error(err)
+		return err
+	}
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(resp.Body)
+	log.Info(buf.String())
+
+	return nil
 }

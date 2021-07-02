@@ -34,6 +34,7 @@ func (a *Action) Run(ctx context.Context) error {
 	return nil
 }
 
+<<<<<<< HEAD
 // GetDefaultTags creates interpolation.Tags from experiment referenced by context
 func GetDefaultTags(ctx context.Context) *Tags {
 	tags := NewTags()
@@ -45,6 +46,55 @@ func GetDefaultTags(ctx context.Context) *Tags {
 				With("this", obj).
 				WithRecommendedVersionForPromotion(&exp.Experiment)
 		}
+=======
+// Tags supports string extrapolation using tags.
+type Tags struct {
+	M map[string]interface{}
+}
+
+// NewTags creates an empty instance of Tags
+func NewTags() Tags {
+	return Tags{M: make(map[string]interface{})}
+}
+
+// WithSecret adds the fields in secret to tags
+func (tags Tags) WithSecret(key string, secret *corev1.Secret) Tags {
+	obj := make(map[string]interface{})
+	if secret != nil {
+		for n, v := range secret.Data {
+			obj[n] = string(v)
+			// tags.M[n] = string(v)
+		}
+	}
+	tags.M[key] = obj
+	return tags
+}
+
+// With adds obj to tags
+func (tags Tags) With(label string, obj interface{}) Tags {
+	if obj != nil {
+		tags.M[label] = obj
+	}
+	return tags
+}
+
+// WithRecommendedVersionForPromotion adds variables from versionDetail of version recommended for promotion
+func (tags Tags) WithRecommendedVersionForPromotion(exp *v2alpha2.Experiment) Tags {
+	if exp == nil || exp.Status.VersionRecommendedForPromotion == nil {
+		log.Warn("no version recommended for promotion")
+		return tags
+	}
+
+	versionRecommendedForPromotion := *exp.Status.VersionRecommendedForPromotion
+	if exp.Spec.VersionInfo == nil {
+		log.Warnf("No version details found for version recommended for promotion: %s", versionRecommendedForPromotion)
+		return tags
+	}
+
+	var versionDetail *v2alpha2.VersionDetail = nil
+	if exp.Spec.VersionInfo.Baseline.Name == versionRecommendedForPromotion {
+		versionDetail = &exp.Spec.VersionInfo.Baseline
+>>>>>>> 9a576e0 (modify secret support for tasks)
 	} else {
 		log.Warn("No experiment found in context")
 	}
