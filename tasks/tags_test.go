@@ -62,9 +62,9 @@ func TestInterpolate(t *testing.T) {
 		},
 	}
 
-	str = "hello {{.secretName}}"
-	tags = tasks.NewTags().WithSecret(&secret)
-	assert.Contains(t, tags.M, "secretName")
+	str = "hello {{.secret.secretName}}"
+	tags = tasks.NewTags().WithSecret("secret", &secret)
+	assert.Contains(t, tags.M, "secret")
 	interpolated, err = tags.Interpolate(&str)
 	assert.NoError(t, err)
 	assert.Equal(t, "hello tester", interpolated)

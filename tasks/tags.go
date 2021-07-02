@@ -20,11 +20,13 @@ func NewTags() Tags {
 }
 
 // WithSecret adds the fields in secret to tags
-func (tags Tags) WithSecret(secret *corev1.Secret) Tags {
+func (tags Tags) WithSecret(label string, secret *corev1.Secret) Tags {
 	if secret != nil {
+		obj := make(map[string]interface{})
 		for n, v := range secret.Data {
-			tags.M[n] = string(v)
+			obj[n] = string(v)
 		}
+		tags = tags.With(label, obj)
 	}
 	return tags
 }
