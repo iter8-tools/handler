@@ -3,8 +3,12 @@ package common
 import (
 	"context"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/tasks"
@@ -179,4 +183,50 @@ func TestMakeHttpRequestTask(t *testing.T) {
 
 	err = task.(*HTTPRequestTask).Run(ctx)
 	assert.NoError(t, err)
+}
+
+func TestTriggerAction(t *testing.T) {
+	exp, err := (&tasks.Builder{}).FromFile(tasks.CompletePath("../../../", "testdata/trigger-experiment.yaml")).Build()
+	assert.NoError(t, err)
+	ctx := context.WithValue(context.Background(), tasks.ContextKey("experiment"), exp)
+
+	taskSpec := exp.Experiment.Spec.Strategy.Actions["start"][0]
+	task, err := MakeTask(&taskSpec)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, task)
+
+	req, err := task.(*HTTPRequestTask).prepareRequest(ctx)
+	assert.NotEmpty(t, task)
+	assert.NoError(t, err)
+
+	dispatchURL := req.URL.String()
+	runsURL := strings.Replace(req.URL.String(), "dispatches", "runs", -1)
+	assert.Equal(t, "https://api.github.com/repos/kalantar/csvdiff/actions/workflows/hello.yaml/dispatches", dispatchURL)
+	assert.Equal(t, "application/vnd.github.v3+json", req.Header.Get("Accept"))
+
+	original := getNumRuns(t, runsURL)
+	time.Sleep(10 * time.Second)
+
+	err = task.(*HTTPRequestTask).Run(ctx)
+	assert.NoError(t, err)
+	time.Sleep(10 * time.Second)
+
+	current := getNumRuns(t, runsURL)
+	assert.Greater(t, current, original)
+}
+
+func getNumRuns(t *testing.T, runsURL string) int {
+	resp, err := http.Get(runsURL)
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+
+	b, err := ioutil.ReadAll(resp.Body)
+	assert.NoError(t, err)
+
+	runs := make(map[string]interface{})
+	err = json.Unmarshal(b, &runs)
+	assert.NoError(t, err)
+
+	x := runs["workflow_runs"].([]interface{})
+	return len(x)
 }
