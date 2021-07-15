@@ -1,7 +1,9 @@
 package tasks_test
 
 import (
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/iter8-tools/handler/tasks"
 	"github.com/sirupsen/logrus"
@@ -32,4 +34,21 @@ func TestPointers(t *testing.T) {
 	assert.Equal(t, "hello", *tasks.StringPointer("hello"))
 	assert.Equal(t, false, *tasks.BoolPointer(false))
 	assert.Equal(t, tasks.GET, *tasks.HTTPMethodPointer(tasks.GET))
+}
+
+func TestWaitTimeoutOrError(t *testing.T) {
+	errCh := make(chan error)
+	defer close(errCh)
+
+	var wg sync.WaitGroup
+	for j := range []int{0, 1, 2, 3} {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			time.Sleep(10 * time.Second)
+		}(j)
+	}
+
+	err := tasks.WaitTimeoutOrError(&wg, 30*time.Second, errCh)
+	assert.NoError(t, err)
 }

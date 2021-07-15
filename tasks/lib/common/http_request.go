@@ -80,7 +80,7 @@ func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 	if secretName != nil {
 		secret, err := tasks.GetSecret(*secretName)
 		if err != nil {
-			tags = tasks.WithSecret(secret)
+			tags = tags.WithSecret("secret", secret)
 		}
 	}
 	log.Info("final tags: ", tags)
