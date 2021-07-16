@@ -92,16 +92,20 @@ func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 	}
 	log.Info("method: ", *method)
 
-	defaultBody := ""
 	body := t.With.Body
 	if body != nil {
 		if interpolated, err := tags.Interpolate(body); err == nil {
 			body = &interpolated
 		}
 	} else {
-		body = &defaultBody
+		// body should be defaulted
+		b, err := defaultBody(exp.Experiment)
+		if err != nil {
+			return nil, err
+		}
+		body = &b
 	}
-	log.Info("body:", *body)
+	log.Trace("body:", *body)
 
 	defaultAuthType := v2alpha2.AuthType("None")
 	authType := t.With.AuthType
@@ -137,6 +141,47 @@ func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 	}
 
 	return req, err
+}
+
+// helper types for creating a default body
+type defaultbody struct {
+	Summary    experimentsummary   `json:"summary" yaml:"summary"`
+	Experiment v2alpha2.Experiment `json:"experiment" yaml:"experiment"`
+}
+
+type experimentsummary struct {
+	WinnerFound                    bool    `json:"winnerFound" yaml:"winnerFound"`
+	Winner                         *string `json:"winner,omitempty" yaml:"winner,omitempty"`
+	VersionRecommendedForPromotion *string `json:"versionRecommendedForPromotion,omitempty" yaml:"versionRecommendedForPromotion,omitempty"`
+}
+
+func defaultBody(experiment v2alpha2.Experiment) (string, error) {
+	defaultBody := defaultbody{
+		Summary: experimentsummary{
+			WinnerFound: false,
+		},
+		Experiment: experiment,
+	}
+	log.Trace("defaultBody:", defaultBody)
+	if experiment.Status.Analysis != nil &&
+		experiment.Status.Analysis.WinnerAssessment != nil {
+		defaultBody.Summary.WinnerFound = experiment.Status.Analysis.WinnerAssessment.Data.WinnerFound
+		if experiment.Status.Analysis.WinnerAssessment.Data.Winner != nil {
+			defaultBody.Summary.Winner = experiment.Status.Analysis.WinnerAssessment.Data.Winner
+		}
+	}
+	log.Trace("defaultBody:", defaultBody)
+	if experiment.Status.VersionRecommendedForPromotion != nil {
+		defaultBody.Summary.VersionRecommendedForPromotion = experiment.Status.VersionRecommendedForPromotion
+	}
+	log.Trace("defaultBody:", defaultBody)
+
+	b, err := json.Marshal(defaultBody)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
 }
 
 // Run the command.
