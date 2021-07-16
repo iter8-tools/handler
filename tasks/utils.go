@@ -96,7 +96,7 @@ func WaitTimeoutOrError(wg *sync.WaitGroup, timeout time.Duration, errCh chan er
 	case <-c: // completed normally
 		return nil
 	case <-time.After(timeout): // timeout
-		return errors.New("Timedout waiting for fortio data collection") // timed out
+		return errors.New("Timed out waiting for go routines to complete") // timed out
 	case err := <-errCh: // error in channel
 		return err
 	}

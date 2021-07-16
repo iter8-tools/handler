@@ -36,7 +36,7 @@ func TestPointers(t *testing.T) {
 	assert.Equal(t, tasks.GET, *tasks.HTTPMethodPointer(tasks.GET))
 }
 
-func TestWaitTimeoutOrError(t *testing.T) {
+func TestWait(t *testing.T) {
 	errCh := make(chan error)
 	defer close(errCh)
 
@@ -51,4 +51,22 @@ func TestWaitTimeoutOrError(t *testing.T) {
 
 	err := tasks.WaitTimeoutOrError(&wg, 30*time.Second, errCh)
 	assert.NoError(t, err)
+}
+
+func TestWaitTimeout(t *testing.T) {
+	errCh := make(chan error)
+	defer close(errCh)
+
+	var wg sync.WaitGroup
+	for j := range []int{0, 1, 2, 3} {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			time.Sleep(10 * time.Second)
+		}(j)
+	}
+
+	err := tasks.WaitTimeoutOrError(&wg, 5*time.Second, errCh)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "Timed out waiting for go routines to complete")
 }
