@@ -25,7 +25,7 @@ type TaskMeta struct {
 // Run the given action.
 func (a *Action) Run(ctx context.Context) error {
 	for i := 0; i < len(*a); i++ {
-		log.Info("------")
+		log.Info("------ task starting")
 		err := (*a)[i].Run(ctx)
 		if err != nil {
 			return err

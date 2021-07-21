@@ -24,6 +24,7 @@ const (
 type SlackTaskInputs struct {
 	Channel string `json:"channel" yaml:"channel"`
 	Secret  string `json:"secret" yaml:"secret"`
+	Inputs  `json:",inline" yaml:",inline"`
 }
 
 // SlackTask encapsulates a command that can be executed.
@@ -54,7 +55,10 @@ func MakeSlackTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
 // Run the task. This suppresses all errors so that the task will always succeed.
 // In this way, any failure does not cause failure of the enclosing experiment.
 func (t *SlackTask) Run(ctx context.Context) error {
-	t.internalRun(ctx)
+	err := t.internalRun(ctx)
+	if t.With.IgnoreFailure != nil && !*t.With.IgnoreFailure {
+		return err
+	}
 	return nil
 }
 

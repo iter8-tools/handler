@@ -9,6 +9,13 @@ import (
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
+func TestMakeFakeMetricsTask(t *testing.T) {
+	_, err := MakeTask(&v2alpha2.TaskSpec{
+		Task: LibraryName + "/" + "fake",
+	})
+	assert.Error(t, err)
+}
+
 func TestMakeTask(t *testing.T) {
 	vers, err := json.Marshal([]Version{
 		{

@@ -1,4 +1,4 @@
-package common
+package notification
 
 import (
 	"bytes"
@@ -16,30 +16,31 @@ import (
 )
 
 const (
-	// HTTPRequestTaskName is the name of the HTTP request task
-	HTTPRequestTaskName string = "http-request"
+	// HTTPTaskName is the name of the HTTP request task
+	HTTPTaskName string = "http"
 )
 
-// HTTPRequestInputs contain the name and arguments of the task.
-type HTTPRequestInputs struct {
+// HTTPInputs contain the name and arguments of the task.
+type HTTPInputs struct {
 	URL      string                `json:"URL" yaml:"URL"`
 	Method   *v2alpha2.MethodType  `json:"method,omitempty" yaml:"method,omitempty"`
 	AuthType *v2alpha2.AuthType    `json:"authType,omitempty" yaml:"authType,omitempty"`
 	Secret   *string               `json:"secret,omitempty" yaml:"secret,omitempty"`
 	Headers  []v2alpha2.NamedValue `json:"headers,omitempty" yaml:"headers,omitempty"`
 	Body     *string               `json:"body,omitempty" yaml:"body,omitempty"`
+	Inputs   `json:",inline" yaml:",inline"`
 }
 
-// HTTPRequestTask encapsulates the task.
-type HTTPRequestTask struct {
+// HTTPTask encapsulates the task.
+type HTTPTask struct {
 	tasks.TaskMeta `json:",inline" yaml:",inline"`
-	With           HTTPRequestInputs `json:"with" yaml:"with"`
+	With           HTTPInputs `json:"with" yaml:"with"`
 }
 
-// MakeHTTPRequestTask converts an spec to a task.
-func MakeHTTPRequestTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
-	if t.Task != LibraryName+"/"+HTTPRequestTaskName {
-		return nil, fmt.Errorf("library and task need to be '%s' and '%s'", LibraryName, HTTPRequestTaskName)
+// MakeHTTPTask converts an spec to a task.
+func MakeHTTPTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
+	if t.Task != LibraryName+"/"+HTTPTaskName {
+		return nil, fmt.Errorf("library and task need to be '%s' and '%s'", LibraryName, HTTPTaskName)
 	}
 	var jsonBytes []byte
 	var task tasks.Task
@@ -49,12 +50,12 @@ func MakeHTTPRequestTask(t *v2alpha2.TaskSpec) (tasks.Task, error) {
 		return nil, err
 	}
 	// convert jsonString to ExecTask
-	task = &HTTPRequestTask{}
+	task = &HTTPTask{}
 	err = json.Unmarshal(jsonBytes, &task)
 	return task, err
 }
 
-func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, error) {
+func (t *HTTPTask) prepareRequest(ctx context.Context) (*http.Request, error) {
 	tags := tasks.NewTags()
 	exp, err := tasks.GetExperimentFromContext(ctx)
 	if err != nil {
@@ -76,21 +77,24 @@ func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 		With("this", obj).
 		WithRecommendedVersionForPromotion(&exp.Experiment)
 
+	// log tags now before secret is added; we don't log the secret
+	log.Trace("tags without secrets: ", tags)
+
 	secretName := t.With.Secret
 	if secretName != nil {
 		secret, err := tasks.GetSecret(*secretName)
-		if err != nil {
+		if err == nil {
 			tags = tags.WithSecret("secret", secret)
 		}
 	}
-	log.Info("final tags: ", tags)
+	log.Trace("tags with secrets: ", tags)
 
 	defaultMethod := v2alpha2.POSTMethodType
 	method := t.With.Method
 	if method == nil {
 		method = &defaultMethod
 	}
-	log.Info("method: ", *method)
+	log.Trace("method: ", *method)
 
 	body := t.With.Body
 	if body != nil {
@@ -112,6 +116,7 @@ func (t *HTTPRequestTask) prepareRequest(ctx context.Context) (*http.Request, er
 	if authType == nil {
 		authType = &defaultAuthType
 	}
+	log.Trace("authType: ", *authType)
 
 	req, err := http.NewRequest(string(*method), t.With.URL, strings.NewReader(*body))
 	if err != nil {
@@ -150,9 +155,10 @@ type defaultbody struct {
 }
 
 type experimentsummary struct {
-	WinnerFound                    bool    `json:"winnerFound" yaml:"winnerFound"`
-	Winner                         *string `json:"winner,omitempty" yaml:"winner,omitempty"`
-	VersionRecommendedForPromotion *string `json:"versionRecommendedForPromotion,omitempty" yaml:"versionRecommendedForPromotion,omitempty"`
+	WinnerFound                    bool                  `json:"winnerFound" yaml:"winnerFound"`
+	Winner                         *string               `json:"winner,omitempty" yaml:"winner,omitempty"`
+	VersionRecommendedForPromotion *string               `json:"versionRecommendedForPromotion,omitempty" yaml:"versionRecommendedForPromotion,omitempty"`
+	LastRecommendedWeights         []v2alpha2.WeightData `json:"lastRecommendedWeights,omitempty" yaml:"lastRecommendedWeights,omitempty"`
 }
 
 func defaultBody(experiment v2alpha2.Experiment) (string, error) {
@@ -162,7 +168,8 @@ func defaultBody(experiment v2alpha2.Experiment) (string, error) {
 		},
 		Experiment: experiment,
 	}
-	log.Trace("defaultBody:", defaultBody)
+
+	// WinnerFound, Winner
 	if experiment.Status.Analysis != nil &&
 		experiment.Status.Analysis.WinnerAssessment != nil {
 		defaultBody.Summary.WinnerFound = experiment.Status.Analysis.WinnerAssessment.Data.WinnerFound
@@ -170,11 +177,19 @@ func defaultBody(experiment v2alpha2.Experiment) (string, error) {
 			defaultBody.Summary.Winner = experiment.Status.Analysis.WinnerAssessment.Data.Winner
 		}
 	}
-	log.Trace("defaultBody:", defaultBody)
+
+	// VersionRecommendedForPromotion
 	if experiment.Status.VersionRecommendedForPromotion != nil {
 		defaultBody.Summary.VersionRecommendedForPromotion = experiment.Status.VersionRecommendedForPromotion
 	}
-	log.Trace("defaultBody:", defaultBody)
+
+	// LastRecommendedWeights
+	if experiment.Status.Analysis != nil && experiment.Status.Analysis.Weights != nil {
+		defaultBody.Summary.LastRecommendedWeights = make([]v2alpha2.WeightData, len(experiment.Status.Analysis.Weights.Data))
+		for i, w := range experiment.Status.Analysis.Weights.Data {
+			defaultBody.Summary.LastRecommendedWeights[i] = v2alpha2.WeightData{Name: w.Name, Value: w.Value}
+		}
+	}
 
 	b, err := json.Marshal(defaultBody)
 	if err != nil {
@@ -185,7 +200,7 @@ func defaultBody(experiment v2alpha2.Experiment) (string, error) {
 }
 
 // Run the command.
-func (t *HTTPRequestTask) Run(ctx context.Context) error {
+func (t *HTTPTask) internalRun(ctx context.Context) error {
 	req, err := t.prepareRequest(ctx)
 
 	if err != nil {
@@ -214,5 +229,14 @@ func (t *HTTPRequestTask) Run(ctx context.Context) error {
 	buf.ReadFrom(resp.Body)
 	log.Info(buf.String())
 
+	return nil
+}
+
+// Run the task. Ignores failures unless the task indicates ignoreFailures: false
+func (t *HTTPTask) Run(ctx context.Context) error {
+	err := t.internalRun(ctx)
+	if t.With.IgnoreFailure != nil && !*t.With.IgnoreFailure {
+		return err
+	}
 	return nil
 }
