@@ -57,7 +57,7 @@ func TestMakeHttpTask(t *testing.T) {
 	assert.Equal(t, "http://postman-echo.com/post", req.URL.String())
 	assert.Equal(t, "bar", req.Header.Get("x-foo"))
 
-	//	err = task.(*HTTPTask).Run(ctx)
+	err = task.(*HTTPTask).Run(ctx)
 	assert.NoError(t, err)
 }
 
