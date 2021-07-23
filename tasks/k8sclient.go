@@ -6,7 +6,6 @@ import (
 	"time"
 
 	iter8 "github.com/iter8-tools/etc3/api/v2alpha2"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,8 +13,6 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
-	servingv1 "knative.dev/serving/pkg/apis/serving/v1"
 )
 
 // Much of this k8sclient code is based on the following tutorial:
@@ -51,7 +48,6 @@ var GetClient = func() (rc client.Client, err error) {
 		metav1.AddToGroupVersion(scheme, iter8.GroupVersion)
 		scheme.AddKnownTypes(iter8.GroupVersion, &Experiment{})
 
-		var gvk schema.GroupVersionKind
 		var gv schema.GroupVersion
 
 		// Support for notification library
@@ -62,21 +58,6 @@ var GetClient = func() (rc client.Client, err error) {
 		metav1.AddToGroupVersion(scheme, gv)
 		scheme.AddKnownTypes(gv, &corev1.Secret{})
 
-		// Support for deployments
-		metav1.AddToGroupVersion(scheme, appsv1.SchemeGroupVersion)
-		scheme.AddKnownTypes(appsv1.SchemeGroupVersion,
-			&appsv1.Deployment{},
-		)
-
-		// Support for knative library
-		ksvc := &servingv1.Service{}
-		gvk = ksvc.GetGroupVersionKind()
-		gv = schema.GroupVersion{
-			Group:   gvk.Group,
-			Version: gvk.Version,
-		}
-		metav1.AddToGroupVersion(scheme, gv)
-		scheme.AddKnownTypes(gv, ksvc)
 		return nil
 	}
 

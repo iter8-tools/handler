@@ -9,6 +9,7 @@ import (
 	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/tasks"
 	"github.com/iter8-tools/handler/tasks/lib/common"
+	"github.com/iter8-tools/handler/tasks/lib/gitops"
 	"github.com/iter8-tools/handler/tasks/lib/metrics"
 	"github.com/iter8-tools/handler/tasks/lib/notification"
 	"github.com/spf13/cobra"
@@ -49,6 +50,10 @@ Loop:
 				}
 			case metrics.LibraryName:
 				if action[i], err = metrics.MakeTask(&actionSpec[i]); err != nil {
+					break Loop
+				}
+			case gitops.LibraryName:
+				if action[i], err = gitops.MakeTask(&actionSpec[i]); err != nil {
 					break Loop
 				}
 			default:
