@@ -4,20 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os/exec"
 
 	"github.com/iter8-tools/etc3/api/v2alpha2"
 	"github.com/iter8-tools/handler/tasks"
 )
 
-/*
-- task: gitops/helmex-update
-  with:
-    expTemplate: experiment.yaml # optional with default value experiment.yaml; the experiment yaml in the helm chart
-*/
-
 const (
 	// HelmexUpdateTaskName is the name of the task this file implements
 	HelmexUpdateTaskName string = "helmex-update"
+
+	// LocalDir is the directory where the git repo is cloned
+	LocalDir string = "/gitdir"
 
 	// DefaultExpTemplate is the default value of the name of experiment template file in the Helmex chart
 	DefaultExpTemplate string = "experiment.yaml"
@@ -79,7 +77,26 @@ func (t *HelmexUpdateTask) InitializeDefaults() {
 
 // CloneGitRepo locally
 func (t *HelmexUpdateTask) CloneGitRepo() error {
-	return nil
+	// the main idea is to run git clone as a shell command with proper args
+
+	// git clone <repo> <localdir>
+
+	// delete localdir
+	cmd := exec.Command("rm", "-rf", LocalDir)
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	// create localdir
+	cmd = exec.Command("mkdir", LocalDir)
+	err = cmd.Run()
+	if err != nil {
+		return err
+	}
+	// clone into localdir
+	cmd = exec.Command("git", "clone", t.With.GitRepo, LocalDir)
+	err = cmd.Run()
+	return err
 }
 
 // VerifyExperimentHash ensures that the current experiment is the same one that was created using the values file in the git repo.
