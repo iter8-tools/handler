@@ -77,9 +77,47 @@ func (t *HelmexUpdateTask) InitializeDefaults() {
 	}
 }
 
+// CloneGitRepo locally
+func (t *HelmexUpdateTask) CloneGitRepo() error {
+	return nil
+}
+
+// VerifyExperimentHash ensures that the current experiment is the same one that was created using the values file in the git repo.
+// If the candidate section of the values file was updated since the creation of this experiment, this function will return an error.
+// For this to work, experiment name needs to have a suffic computed from the candidate object in the values file.
+// This is a requirement in Helmex experiments.
+func (t *HelmexUpdateTask) VerifyExperimentHash() error {
+	return nil
+}
+
+// UpdateValuesFile updates the locally cloned values.yaml file.
+// ToDo: implement weight updates.
+func (t *HelmexUpdateTask) UpdateValuesFile() error {
+	return nil
+}
+
+// UpdateInGit updates values.yaml file in git by submitting a PR.
+// ToDo: implement git push
+func (t *HelmexUpdateTask) UpdateInGit() error {
+	return nil
+}
+
 // Run executes the gitops/helmex-update task
 func (t *HelmexUpdateTask) Run(ctx context.Context) error {
 	log.Trace("collect task run started...")
 	t.InitializeDefaults()
-	return nil
+	err := t.CloneGitRepo()
+	if err != nil {
+		return err
+	}
+	err = t.VerifyExperimentHash()
+	if err != nil {
+		return err
+	}
+	err = t.UpdateValuesFile()
+	if err != nil {
+		return err
+	}
+	err = t.UpdateInGit()
+	return err
 }
